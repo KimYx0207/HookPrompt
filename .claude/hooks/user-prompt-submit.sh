@@ -8,15 +8,27 @@
 # 3. 展示优化后的结果
 # 4. 自动继续执行
 
+# 日志文件路径
+LOG_FILE="/tmp/hook-prompt-optimizer.log"
+
+# 记录Hook执行
+echo "========================================" >> "$LOG_FILE"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hook执行开始" >> "$LOG_FILE"
+
 # 读取用户输入
 USER_INPUT="$*"
 if [ -z "$USER_INPUT" ]; then
     USER_INPUT=$(cat)
 fi
 
+# 记录用户输入
+echo "用户输入: $USER_INPUT" >> "$LOG_FILE"
+echo "输入长度: ${#USER_INPUT}" >> "$LOG_FILE"
+
 # 智能过滤：简短问题不优化（<30字）
 INPUT_LENGTH=${#USER_INPUT}
 if [ "$INPUT_LENGTH" -lt 10 ]; then
+    echo "输入太短($INPUT_LENGTH<10)，跳过优化" >> "$LOG_FILE"
     echo "$USER_INPUT"
     exit 0
 fi
@@ -24,14 +36,17 @@ fi
 # 简单交互式回复不优化
 case "$USER_INPUT" in
     好的|是的|继续|谢谢|ok|OK|yes|YES|no|NO|确认|取消)
+        echo "简单交互回复，跳过优化" >> "$LOG_FILE"
         echo "$USER_INPUT"
         exit 0
         ;;
 esac
 
+echo "✅ 通过过滤，开始优化流程..." >> "$LOG_FILE"
+
 # 获取目录路径
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLAUDE_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
+CLAUDE_DIR="$(dirname "$SCRIPT_DIR")"  # .claude目录
 
 # 读取优化提示词模板
 OPTIMIZER_PROMPT_FILE="$CLAUDE_DIR/prompt-optimizer-meta.md"
