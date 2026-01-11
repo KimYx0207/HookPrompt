@@ -96,13 +96,13 @@ chmod +x ~/.claude/hooks/*.sh
     "user-prompt-submit": {
       "enabled": true,
       "command": "node",
-      "args": ["~/.claude/hooks/user-prompt-submit.js"]
+      "args": ["~/.claude/hooks/userpromptsubmit.js"]
     }
   }
 }
 ```
 
-> ⚠️ **Windows用户注意**：使用绝对路径，如 `C:/Users/你的用户名/.claude/hooks/user-prompt-submit.js`
+> ⚠️ **Windows用户注意**：使用绝对路径，如 `C:/Users/你的用户名/.claude/hooks/userpromptsubmit.js`
 
 ---
 
@@ -178,7 +178,7 @@ chmod +x ~/.claude/hooks/*.sh
 ```json
 {
   "hooks": {
-    "user-prompt-submit": {
+    "userpromptsubmit": {
       "enabled": true,
       "command": "bash",
       "args": [".claude/hooks/user-prompt-submit.sh"]
