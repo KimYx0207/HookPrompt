@@ -7,6 +7,13 @@
 
 ## 📋 更新日志
 
+### v1.2.0 (2026-01-11) - **重要更新：修复Hook触发问题** 🔥
+- ✅ **修复settings.json配置格式**：使用正确的`UserPromptSubmit`键名（PascalCase）和数组结构
+- ✅ **修复Hook输出格式**：符合Claude Code官方Hook API，使用JSON格式输出
+- ✅ **添加跨平台配置示例**：提供Windows和Unix的配置模板
+- ✅ **添加测试工具**：`test-hook.js`用于本地测试hook功能
+- ✅ **完善文档**：更新安装和故障排查指南
+
 ### v1.1.0 (2025-12-09)
 - ✅ **新增跨平台支持**：添加Node.js版本，Windows/Mac/Linux全平台支持
 - ✅ **修复输出格式**：去掉干扰Claude理解的分隔符
@@ -46,12 +53,15 @@ Claude自动执行任务
 
 ```
 提示词Hook/
-  └── .claude/
-      ├── hooks/
-      │   ├── user-prompt-submit.js   ← Node.js版（推荐，跨平台）
-      │   └── user-prompt-submit.sh   ← Bash版（Mac/Linux）
-      ├── prompt-optimizer-meta.md    ← 优化提示词模板
-      └── settings.json               ← Hook配置
+  ├── .claude/
+  │   ├── hooks/
+  │   │   ├── user-prompt-submit.js        ← Node.js版（推荐，跨平台）
+  │   │   └── user-prompt-submit.sh        ← Bash版（Mac/Linux）
+  │   ├── prompt-optimizer-meta.md         ← 优化提示词模板
+  │   ├── settings.json                    ← Hook配置（当前项目）
+  │   ├── settings.json.example-windows    ← Windows配置示例
+  │   └── settings.json.example-unix       ← Mac/Linux配置示例
+  └── test-hook.js                         ← 测试工具（验证hook功能）
 ```
 
 ---
@@ -61,8 +71,9 @@ Claude自动执行任务
 ### 方法1：在这个项目中使用
 
 1. 用Claude Code打开这个项目目录
-2. 随便说点什么测试（超过10个字符）
-3. 看Hook是否显示优化过程
+2. **首次使用前运行测试**：`node test-hook.js`（可选，验证功能）
+3. 随便说点什么测试（超过10个字符）
+4. 看Hook是否显示优化过程
 
 ### 方法2：复制到其他项目
 
@@ -70,6 +81,8 @@ Claude自动执行任务
 # 复制整个.claude目录到你的项目
 cp -r .claude /你的项目根目录/
 ```
+
+**重要**：确保settings.json使用正确的格式（见下方）
 
 ### 方法3：全局配置（推荐）
 
@@ -90,19 +103,69 @@ chmod +x ~/.claude/hooks/*.sh
 ```
 
 然后编辑 `~/.claude/settings.json`（如果不存在就创建）：
+
+**Windows用户：**
 ```json
 {
   "hooks": {
-    "user-prompt-submit": {
-      "enabled": true,
-      "command": "node",
-      "args": ["~/.claude/hooks/userpromptsubmit.js"]
-    }
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["C:/Users/你的用户名/.claude/hooks/user-prompt-submit.js"]
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-> ⚠️ **Windows用户注意**：使用绝对路径，如 `C:/Users/你的用户名/.claude/hooks/userpromptsubmit.js`
+**Mac/Linux用户（Node.js版）：**
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["~/.claude/hooks/user-prompt-submit.js"]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Mac/Linux用户（Bash版）：**
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["~/.claude/hooks/user-prompt-submit.sh"]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+> ⚠️ **重要**：
+> - 键名必须是 `UserPromptSubmit`（PascalCase），不是 `user-prompt-submit`
+> - 值必须是数组，包含hooks对象
+> - 必须包含 `type: "command"` 字段
+>>>>>>> f94bc2b (feat(v1.2.0): 修复Hook触发问题+完善文档)
 
 ---
 
@@ -159,30 +222,32 @@ chmod +x ~/.claude/hooks/*.sh
 
 ## 🔧 配置选项
 
+### 查看配置示例
+
+项目中提供了两个配置示例文件：
+- `.claude/settings.json.example-windows` - Windows平台配置
+- `.claude/settings.json.example-unix` - Mac/Linux平台配置
+
 ### 启用/禁用Hook
 
-编辑 `.claude/settings.json`：
+**临时禁用**：重命名settings.json为settings.json.bak
 
+**切换Bash版本（Mac/Linux）**：
+修改`.claude/settings.json`中的command和args：
 ```json
 {
   "hooks": {
-    "user-prompt-submit": {
-      "enabled": false
-    }
-  }
-}
-```
-
-### 切换Bash版本（Mac/Linux）
-
-```json
-{
-  "hooks": {
-    "userpromptsubmit": {
-      "enabled": true,
-      "command": "bash",
-      "args": [".claude/hooks/user-prompt-submit.sh"]
-    }
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": [".claude/hooks/user-prompt-submit.sh"]
+          }
+        ]
+      }
+    ]
   }
 }
 ```
@@ -196,27 +261,119 @@ chmod +x ~/.claude/hooks/*.sh
 
 ---
 
+## 🧪 测试工具
+
+使用提供的测试脚本验证hook功能：
+
+```bash
+node test-hook.js
+```
+
+测试脚本会：
+- ✅ 测试简短回复（应跳过优化）
+- ✅ 测试太短输入（应跳过优化）
+- ✅ 测试正常长文本（应触发优化）
+- ✅ 测试复杂需求（应触发优化）
+- ✅ 显示详细的测试结果和日志
+
+---
+
 ## 🐛 故障排查
 
 ### 问题1：Hook没有执行
 
+**症状**：输入提示词后没有看到任何优化输出
+
 **检查步骤**：
-1. 确认 `.claude/settings.json` 中 `enabled: true`
-2. 确认Node.js已安装（运行 `node -v` 检查）
-3. 重启Claude Code
+1. **验证配置格式**：
+   - 确认 `.claude/settings.json` 中键名是 `UserPromptSubmit`（不是 `user-prompt-submit`）
+   - 确认值是数组结构，包含 `hooks` 对象
+   - 确认包含 `type: "command"` 字段
 
-### 问题2：没有显示优化过程
+2. **运行测试脚本**：
+   ```bash
+   node test-hook.js
+   ```
+   如果测试失败，说明hook脚本本身有问题
 
-**检查**：
-- 你的输入是否太短（<10字符）？
-- 是否是简单回复（"好的"、"继续"）？
-- 查看日志：
-  - Windows: `%TEMP%\hook-prompt-optimizer.log`
-  - Mac/Linux: `/tmp/hook-prompt-optimizer.log`
+3. **检查Node.js**：
+   ```bash
+   node -v
+   ```
+   确保已安装Node.js
 
-### 问题3：Windows提示找不到bash
+4. **重启Claude Code**：配置更改后需要重启
 
-使用Node.js版本（默认配置已经是Node.js版）。
+5. **查看错误日志**：
+   - Windows: `%TEMP%\hook-prompt-optimizer.log`
+   - Mac/Linux: `/tmp/hook-prompt-optimizer.log`
+
+### 问题2：显示"Invalid key in record"错误
+
+**原因**：settings.json配置格式错误
+
+**解决方法**：
+1. 检查键名是否为 `UserPromptSubmit`（PascalCase）
+2. 检查是否使用了数组结构
+3. 参考项目中的示例文件：
+   - `.claude/settings.json.example-windows`
+   - `.claude/settings.json.example-unix`
+
+### 问题3：没有显示优化过程
+
+**可能原因**：
+- 你的输入太短（<10字符）
+- 输入是简单回复（"好的"、"继续"等）
+- Hook工作正常，但返回了空响应
+
+**检查方法**：
+1. 运行测试脚本：`node test-hook.js`
+2. 查看日志文件，确认hook是否被触发
+3. 尝试输入较长的需求描述
+
+### 问题4：Windows提示找不到bash
+
+**解决方法**：使用Node.js版本（推荐）
+- 确保settings.json中配置的是 `node` 命令
+- 参考 `.claude/settings.json.example-windows`
+
+### 问题5：Mac/Linux权限错误
+
+**解决方法**：
+```bash
+chmod +x .claude/hooks/*.sh
+```
+
+### 通用调试步骤
+
+1. **最小化测试**：
+   ```bash
+   # 直接运行hook脚本测试
+   echo "帮我写一个登录功能" | node .claude/hooks/user-prompt-submit.js
+   ```
+   应该输出JSON格式的响应
+
+2. **查看日志**：
+   ```bash
+   # Windows
+   type %TEMP%\hook-prompt-optimizer.log
+
+   # Mac/Linux
+   cat /tmp/hook-prompt-optimizer.log
+   ```
+
+3. **验证JSON格式**：
+   hook输出必须是有效的JSON，格式如下：
+   ```json
+   {
+     "hookSpecificOutput": {
+       "additionalContext": "..."
+     }
+   }
+   ```
+   或空对象 `{}`
+
+
 
 ---
 

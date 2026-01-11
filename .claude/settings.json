@@ -1,9 +1,15 @@
 {
   "hooks": {
-    "user-prompt-submit": {
-      "enabled": true,
-      "command": "node",
-      "args": [".claude/hooks/user-prompt-submit.js"]
-    }
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [".claude/hooks/user-prompt-submit.js"]
+          }
+        ]
+      }
+    ]
   }
 }

@@ -41,7 +41,7 @@ log "输入长度: ${#USER_INPUT}"
 case "$USER_INPUT" in
     好的|是的|继续|谢谢|ok|OK|yes|YES|no|NO|确认|取消|好|行|可以|不|嗯|y|n|Y|N)
         log "简单回复，跳过优化"
-        echo "$USER_INPUT"
+        echo "{}"
         exit 0
         ;;
 esac
@@ -50,7 +50,7 @@ esac
 INPUT_LENGTH=${#USER_INPUT}
 if [ "$INPUT_LENGTH" -lt 10 ]; then
     log "输入太短 ($INPUT_LENGTH < 10)，跳过优化"
-    echo "$USER_INPUT"
+    echo "{}"
     exit 0
 fi
 
@@ -77,22 +77,21 @@ fi
 # 检查模板是否存在
 if [ ! -f "$OPTIMIZER_PROMPT_FILE" ]; then
     log "错误：模板文件未找到"
-    echo "$USER_INPUT"
+    echo "{}"
     exit 0
 fi
 
 # 读取模板
 OPTIMIZER_PROMPT=$(cat "$OPTIMIZER_PROMPT_FILE") || {
     log "错误：读取模板文件失败"
-    echo "$USER_INPUT"
+    echo "{}"
     exit 0
 }
 
 log "模板已加载，构建优化请求..."
 
-# 构建并输出优化请求（不要分隔符，避免干扰Claude！）
-cat << EOF
-$OPTIMIZER_PROMPT
+# 构建优化上下文内容
+ADDITIONAL_CONTEXT="$OPTIMIZER_PROMPT
 
 ---
 
@@ -104,7 +103,14 @@ $USER_INPUT
 
 请严格按照格式输出优化结果，最后必须包含完整的优化后提示词。
 
-**重要**：输出优化结果后，立即执行"优化后的完整提示词"中描述的任务，不要等待用户确认。
+**重要**：输出优化结果后，立即执行\"优化后的完整提示词\"中描述的任务，不要等待用户确认。"
+
+# 输出JSON格式（使用jq或手动构建）
+# 为了兼容性，手动构建JSON（转义特殊字符）
+ESCAPED_CONTEXT=$(echo "$ADDITIONAL_CONTEXT" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | awk '{printf "%s\\n", $0}' | sed '$ s/\\n$//')
+
+cat << EOF
+{"hookSpecificOutput":{"additionalContext":"$ESCAPED_CONTEXT"}}
 EOF
 
-log "优化请求已发送"
+log "优化请求已发送（JSON格式）"

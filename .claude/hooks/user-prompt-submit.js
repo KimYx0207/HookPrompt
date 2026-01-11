@@ -82,10 +82,10 @@ function shouldFilter(input) {
 }
 
 /**
- * 构建优化请求
+ * 构建优化请求（JSON格式，符合Claude Code Hook API）
  */
 function buildOptimizationRequest(template, userInput) {
-    return `${template}
+    const additionalContext = `${template}
 
 ---
 
@@ -98,6 +98,12 @@ ${userInput}
 请严格按照格式输出优化结果，最后必须包含完整的优化后提示词。
 
 **重要**：输出优化结果后，立即执行"优化后的完整提示词"中描述的任务，不要等待用户确认。`;
+
+    return {
+        hookSpecificOutput: {
+            additionalContext: additionalContext
+        }
+    };
 }
 
 /**
@@ -124,7 +130,9 @@ async function main() {
 
     // 检查是否需要过滤
     if (shouldFilter(userInput)) {
-        process.stdout.write(userInput);
+        // 简单回复不需要优化，返回空响应
+        log('简单回复，不添加额外上下文');
+        process.stdout.write(JSON.stringify({}));
         return;
     }
 
@@ -133,24 +141,22 @@ async function main() {
     // 读取模板
     const template = readOptimizerTemplate();
     if (!template) {
-        log('模板未找到，返回原始输入');
-        process.stdout.write(userInput);
+        log('模板未找到，返回空响应');
+        process.stdout.write(JSON.stringify({}));
         return;
     }
 
     // 构建并输出优化请求
     const optimizationRequest = buildOptimizationRequest(template, userInput);
 
-    log('优化请求已构建，输出中...');
-    process.stdout.write(optimizationRequest);
+    log('优化请求已构建，输出JSON...');
+    log(`JSON长度: ${JSON.stringify(optimizationRequest).length}`);
+    process.stdout.write(JSON.stringify(optimizationRequest));
 }
 
 // 运行
 main().catch(err => {
-    // 出错时返回原始输入
-    const fs = require('fs');
-    const input = process.argv.length > 2
-        ? process.argv.slice(2).join(' ')
-        : fs.readFileSync(0, 'utf8');
-    process.stdout.write(input.trim());
+    // 出错时返回空响应
+    log(`错误: ${err.message}`);
+    process.stdout.write(JSON.stringify({}));
 });

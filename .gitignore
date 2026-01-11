@@ -1,5 +1,8 @@
 # 老金的.gitignore - 这些SB文件不要提交到仓库
 
+# Hook日志文件（临时文件，不需要提交）
+hook-prompt-optimizer.log
+
 # 操作系统文件
 .DS_Store
 Thumbs.db
