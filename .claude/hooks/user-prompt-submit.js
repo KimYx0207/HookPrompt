@@ -113,6 +113,40 @@ ${userInput}
 }
 
 /**
+ * 解析 Claude Code Hook API 的 JSON 输入
+ */
+function parseHookInput(rawInput) {
+    try {
+        const parsed = JSON.parse(rawInput);
+        log('成功解析JSON输入');
+
+        // 检查是否有 messages 数组（新格式）
+        if (parsed.messages && Array.isArray(parsed.messages) && parsed.messages.length > 0) {
+            // 获取最后一条用户消息
+            const lastMessage = parsed.messages[parsed.messages.length - 1];
+            if (lastMessage.role === 'user' && lastMessage.content) {
+                log('从messages数组提取用户输入');
+                return lastMessage.content;
+            }
+        }
+
+        // 检查是否有 prompt 字段（旧格式）
+        if (parsed.prompt) {
+            log('从prompt字段提取用户输入');
+            return parsed.prompt;
+        }
+
+        // 如果都没有，返回原始输入
+        log('未找到标准字段，使用原始输入');
+        return rawInput;
+    } catch (e) {
+        // 如果不是JSON，返回原始输入（可能是纯文本）
+        log('输入不是JSON格式，使用原始文本');
+        return rawInput;
+    }
+}
+
+/**
  * 主函数
  */
 async function main() {
@@ -120,17 +154,22 @@ async function main() {
     log('Hook执行开始');
 
     // 从stdin读取输入
-    let userInput = '';
+    let rawInput = '';
 
     // 检查是否通过参数运行
     if (process.argv.length > 2) {
-        userInput = process.argv.slice(2).join(' ');
+        rawInput = process.argv.slice(2).join(' ');
     } else {
         // 从stdin读取
-        userInput = fs.readFileSync(0, 'utf8');
+        rawInput = fs.readFileSync(0, 'utf8');
     }
 
-    userInput = userInput.trim();
+    rawInput = rawInput.trim();
+    log(`原始输入: ${rawInput.substring(0, 100)}...`);
+    log(`原始输入长度: ${rawInput.length}`);
+
+    // 解析输入，提取实际的用户消息
+    const userInput = parseHookInput(rawInput);
     log(`用户输入: ${userInput.substring(0, 100)}...`);
     log(`输入长度: ${userInput.length}`);
 
