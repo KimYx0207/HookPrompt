@@ -117,7 +117,7 @@ $USER_INPUT
 ESCAPED_CONTEXT=$(echo "$ADDITIONAL_CONTEXT" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | awk '{printf "%s\\n", $0}' | sed '$ s/\\n$//')
 
 cat << EOF
-{"hookSpecificOutput":{"additionalContext":"$ESCAPED_CONTEXT"}}
+{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"$ESCAPED_CONTEXT"}}
 EOF
 
 log "优化请求已发送（JSON格式）"

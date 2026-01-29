@@ -107,6 +107,7 @@ ${userInput}
 
     return {
         hookSpecificOutput: {
+            hookEventName: "UserPromptSubmit",
             additionalContext: additionalContext
         }
     };

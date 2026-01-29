@@ -7,6 +7,11 @@
 
 ## 📋 更新日志
 
+### v1.2.4 (2026-01-29) - **验证：功能测试通过** ✅
+- ✅ **全量测试通过**：`test-hook.js` 4/4 测试用例全部通过，验证了过滤逻辑和优化触发机制
+- ✅ **稳定性验证**：确认 Hook 在 Windows 环境下运行稳定，JSON 解析逻辑健壮
+- ✅ **环境就绪**：项目结构清理完成，移除无关残留文件
+
 ### v1.2.3 (2026-01-28) - **修复：完善 JSON 输入解析** 🔥
 - ✅ **修复核心问题**：添加完整的 JSON 输入解析逻辑，正确提取 `messages` 数组中的用户消息
 - ✅ **修复 Hook 错误**：解决 UserPromptSubmit hook 无法正确处理 Claude Code API 输入的问题
@@ -296,6 +301,46 @@ node test-hook.js
 ---
 
 ## 🐛 故障排查
+
+### 💡 技术复盘：Claude Code Hook 协议适配 (2.1.23+)
+
+如果您遇到 Hook 无法工作的问题，可能是由于 Claude Code 版本更新导致的协议不兼容。以下是关键的修复总结：
+
+#### 1. JSON 协议结构变更
+旧版本协议将事件名暴露在外层，Claude Code 2.1.23+ 强制要求所有上下文相关字段必须包裹在 `hookSpecificOutput` 中。
+
+**❌ 错误结构（旧版）：**
+```javascript
+return {
+    hookEventName: "UserPromptSubmit", // ❌ Claude Code 2.1.23+ 会忽略此字段
+    hookSpecificOutput: { ... }
+};
+```
+
+**✅ 正确结构（新版）：**
+```javascript
+return {
+    hookSpecificOutput: {
+        hookEventName: "UserPromptSubmit", // ✅ 必须包裹在内部
+        additionalContext: "..."
+    }
+};
+```
+
+#### 2. Windows 路径配置的最佳实践
+在 Windows 环境下，使用相对路径可能导致 Hook 脚本无法被找到。
+
+**❌ 风险配置（相对路径）：**
+```json
+"args": [".claude/hooks/user-prompt-submit.js"]
+```
+
+**✅ 推荐配置（绝对路径）：**
+建议使用绝对路径，或确保 `cwd` 上下文正确。
+```json
+"command": "node",
+"args": ["C:/Absolute/Path/To/.claude/hooks/user-prompt-submit.js"]
+```
 
 ### 问题1：Hook没有执行
 

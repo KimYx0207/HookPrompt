@@ -5,8 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [".claude/hooks/user-prompt-submit.js"]
+            "command": "node \"C:/Users/admin/Desktop/KimProject/提示词Hook/.claude/hooks/user-prompt-submit.js\""
           }
         ]
       }
