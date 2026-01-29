@@ -45,3 +45,4 @@ tmp/
 # 备份文件
 *.bak
 *.backup
+__pycache__/
