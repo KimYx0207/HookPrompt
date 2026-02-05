@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"console.log\\(require\\(''os''\\).tmpdir\\(\\)\\)\")",
+      "Bash(node \"C:/Users/admin/.claude/hooks/user-prompt-submit.js\")"
+    ]
+  },
+  "outputStyle": "laojin-engineer"
+}

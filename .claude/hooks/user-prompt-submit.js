@@ -58,10 +58,12 @@ function readOptimizerTemplate() {
  */
 function shouldFilter(input) {
     const trimmed = input.trim();
+    log(`shouldFilter检查: "${trimmed.substring(0, 50)}..." (长度: ${trimmed.length})`);
 
-    // Claude Code 内置命令 - 不应被优化
+    // Claude Code 内置命令和Skill命令 - 不应被优化
+    // 匹配: /help, /commit, /review-pr, /skill-name:sub-command 等
     if (trimmed.startsWith('/')) {
-        log('检测到斜杠命令（Claude Code内置命令），跳过优化');
+        log(`✓ 检测到斜杠命令: "${trimmed.substring(0, 30)}..."，跳过优化`);
         return true;
     }
 
@@ -74,16 +76,17 @@ function shouldFilter(input) {
 
     // 精确匹配简单回复
     if (simpleResponses.includes(trimmed)) {
-        log('检测到简单回复，跳过优化');
+        log(`✓ 检测到简单回复: "${trimmed}"，跳过优化`);
         return true;
     }
 
     // 太短（< 10字符）
     if (trimmed.length < 10) {
-        log(`输入太短 (${trimmed.length} < 10)，跳过优化`);
+        log(`✓ 输入太短 (${trimmed.length} < 10)，跳过优化`);
         return true;
     }
 
+    log('✗ 未匹配任何过滤规则，需要优化');
     return false;
 }
 
@@ -134,26 +137,31 @@ ${userInput}`;
 
 /**
  * 解析 Claude Code Hook API 的 JSON 输入
+ * 支持多种输入格式：
+ * 1. { prompt: "用户输入" } - 旧格式
+ * 2. { messages: [{role: "user", content: "用户输入"}] } - 新格式
+ * 3. { session_id: "...", prompt: "用户输入" } - 带session的格式
  */
 function parseHookInput(rawInput) {
     try {
         const parsed = JSON.parse(rawInput);
         log('成功解析JSON输入');
+        log(`JSON字段: ${Object.keys(parsed).join(', ')}`);
+
+        // 检查是否有 prompt 字段（最常见的格式）
+        if (parsed.prompt) {
+            log(`从prompt字段提取用户输入: "${parsed.prompt.substring(0, 50)}..."`);
+            return parsed.prompt;
+        }
 
         // 检查是否有 messages 数组（新格式）
         if (parsed.messages && Array.isArray(parsed.messages) && parsed.messages.length > 0) {
             // 获取最后一条用户消息
             const lastMessage = parsed.messages[parsed.messages.length - 1];
             if (lastMessage.role === 'user' && lastMessage.content) {
-                log('从messages数组提取用户输入');
+                log(`从messages数组提取用户输入: "${lastMessage.content.substring(0, 50)}..."`);
                 return lastMessage.content;
             }
-        }
-
-        // 检查是否有 prompt 字段（旧格式）
-        if (parsed.prompt) {
-            log('从prompt字段提取用户输入');
-            return parsed.prompt;
         }
 
         // 如果都没有，返回原始输入
