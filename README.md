@@ -1,4 +1,33 @@
-# 提示词自动优化Hook
+# 提示词自动优化 Hook
+
+<div align="center">
+
+![GitHub stars](https://img.shields.io/github/stars/KimYx0207/HookPrompt?style=social)
+![GitHub forks](https://img.shields.io/github/forks/KimYx0207/HookPrompt?style=social)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Language](https://img.shields.io/badge/language-JavaScript-orange.svg)
+
+**谷歌 68 页提示词工程圣经 + 5 任务元提示词 → 自动执行的 Hook**
+
+</div>
+
+> 🔗 **GitHub仓库**：[https://github.com/KimYx0207/HookPrompt](https://github.com/KimYx0207/HookPrompt)
+
+> 老金的开源知识库，实时更新群二维码：https://my.feishu.cn/wiki/OhQ8wqntFihcI1kWVDlcNdpznFf
+
+---
+
+## 📞 联系方式
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/KimYx0207/Claude-Code-x-OpenClaw-Guide-Zh/main/images/二维码基础款.png" alt="联系方式" width="600"/>
+  <p><strong>获取更多AI资讯和技术支持</strong></p>
+  <p>
+    🌐 <a href="https://www.aiking.dev/">aiking.dev</a>
+  </p>
+</div>
+
+---
 
 > 把谷歌68页圣经+5任务元提示词变成自动执行的Hook
 > 你随便说两句大白话，AI自动翻译成专业提示词
