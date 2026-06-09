@@ -55,6 +55,12 @@ Claude auto-executes the task
 cp -r .claude /your/project/root/
 ```
 
+For Codex projects, also copy `.codex`:
+
+```bash
+cp -r .codex /your/project/root/
+```
+
 ### Method 3: Global Configuration (Recommended)
 
 **Windows:**
@@ -98,6 +104,20 @@ Then edit `~/.claude/settings.json`:
 - **Node.js** (recommended): Windows/Mac/Linux
 - **Bash**: Mac/Linux native
 
+### Codex Support
+Codex sends `UserPromptSubmit` input as JSON. The Node.js hook extracts the `prompt` field and returns model-visible context through:
+
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": "..."
+  }
+}
+```
+
+Do not wrap the optimized prompt as `systemMessage`; in Codex that is a UI/event notice, not the same model context channel.
+
 ### Smart Filtering
 | Input Type | Optimized? |
 |-----------|-----------|
@@ -120,6 +140,10 @@ After optimization, Claude automatically executes the task — no second confirm
 ├── settings.json                ← Hook configuration
 ├── settings.json.example-windows
 └── settings.json.example-unix
+.codex/
+├── hooks/
+│   └── user-prompt-submit.js    ← Codex adapter
+└── hooks.json                   ← Codex Hook configuration
 test-hook.js                     ← Test tool
 ```
 

@@ -30,6 +30,27 @@ const testCases = [
         name: '复杂需求（应触发优化）',
         input: '我需要实现一个完整的购物车系统，包括添加商品、修改数量、删除商品和结算功能',
         expectOptimization: true
+    },
+    {
+        name: 'Codex JSON输入（应只提取prompt字段）',
+        input: JSON.stringify({
+            hook_event_name: 'UserPromptSubmit',
+            prompt: '帮我做个小红书营销自动发布器'
+        }),
+        expectOptimization: true,
+        expectContains: '帮我做个小红书营销自动发布器',
+        expectNotContains: '"hook_event_name"'
+    }
+];
+
+const hookTargets = [
+    {
+        name: 'Claude hook',
+        path: path.join(__dirname, '.claude', 'hooks', 'user-prompt-submit.js')
+    },
+    {
+        name: 'Codex hook',
+        path: path.join(__dirname, '.codex', 'hooks', 'user-prompt-submit.js')
     }
 ];
 
@@ -48,14 +69,14 @@ function log(message, color = 'reset') {
 }
 
 // 运行单个测试
-function runTest(testCase) {
+function runTest(testCase, hookTarget) {
     return new Promise((resolve) => {
         log(`\n${'='.repeat(60)}`, 'cyan');
-        log(`测试: ${testCase.name}`, 'blue');
+        log(`测试: ${hookTarget.name} / ${testCase.name}`, 'blue');
         log(`输入: "${testCase.input}"`, 'blue');
         log('='.repeat(60), 'cyan');
 
-        const hookPath = path.join(__dirname, '.claude', 'hooks', 'user-prompt-submit.js');
+        const hookPath = hookTarget.path;
 
         // 检查hook文件是否存在
         if (!fs.existsSync(hookPath)) {
@@ -105,8 +126,17 @@ function runTest(testCase) {
 
                 if (testCase.expectOptimization) {
                     if (hasOptimization) {
-                        log(`\n✅ 测试通过：正确触发了优化`, 'green');
-                        result.passed = true;
+                        const context = jsonOutput.hookSpecificOutput.additionalContext;
+                        if (testCase.expectContains && !context.includes(testCase.expectContains)) {
+                            log(`\n❌ 测试失败：优化内容没有包含预期文本`, 'red');
+                            result.error = `缺少: ${testCase.expectContains}`;
+                        } else if (testCase.expectNotContains && context.includes(testCase.expectNotContains)) {
+                            log(`\n❌ 测试失败：优化内容包含了不应出现的原始JSON字段`, 'red');
+                            result.error = `不应包含: ${testCase.expectNotContains}`;
+                        } else {
+                            log(`\n✅ 测试通过：正确触发了优化`, 'green');
+                            result.passed = true;
+                        }
                     } else {
                         log(`\n❌ 测试失败：应该触发优化但没有`, 'red');
                         result.error = '应该触发优化但返回了空对象';
@@ -143,11 +173,13 @@ async function main() {
     const results = [];
 
     for (const testCase of testCases) {
-        const result = await runTest(testCase);
-        results.push({ name: testCase.name, ...result });
+        for (const hookTarget of hookTargets) {
+            const result = await runTest(testCase, hookTarget);
+            results.push({ name: `${hookTarget.name} / ${testCase.name}`, ...result });
 
-        // 等待一下，避免日志混乱
-        await new Promise(resolve => setTimeout(resolve, 100));
+            // 等待一下，避免日志混乱
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
     }
 
     // 输出总结

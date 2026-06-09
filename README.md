@@ -38,6 +38,11 @@
 
 ## 📋 更新日志
 
+### v1.2.6 (2026-06-10) - **新增：Codex UserPromptSubmit 正式适配** 🔧
+- ✅ **新增 Codex 项目级入口**：提供 `.codex/hooks.json` 和 `.codex/hooks/user-prompt-submit.js`
+- ✅ **修复 Codex 上下文注入语义**：保持 `hookSpecificOutput.additionalContext`，避免被错误包装成只显示给 UI 的 `systemMessage`
+- ✅ **补充 Codex JSON 输入测试**：验证 hook 会提取 `prompt` 字段，不会把整包事件 JSON 当成用户需求优化
+
 ### v1.2.5 (2026-01-30) - **强化：强制格式输出** 🔒
 - ✅ **新增强制格式指令**：添加 `<MANDATORY_FORMAT_INSTRUCTION>` 确保回复始终以固定格式开头
 - ✅ **优化优先级**：格式指令放在 additionalContext 最前面，优先级最高
@@ -120,6 +125,10 @@ Claude自动执行任务
   │   ├── settings.json                    ← Hook配置（当前项目）
   │   ├── settings.json.example-windows    ← Windows配置示例
   │   └── settings.json.example-unix       ← Mac/Linux配置示例
+  ├── .codex/
+  │   ├── hooks/
+  │   │   └── user-prompt-submit.js        ← Codex适配入口
+  │   └── hooks.json                       ← Codex Hook配置
   └── test-hook.js                         ← 测试工具（验证hook功能）
 ```
 
@@ -139,6 +148,12 @@ Claude自动执行任务
 ```bash
 # 复制整个.claude目录到你的项目
 cp -r .claude /你的项目根目录/
+```
+
+如果你的项目使用 Codex，也复制 `.codex`：
+
+```bash
+cp -r .codex /你的项目根目录/
 ```
 
 **重要**：确保settings.json使用正确的格式（见下方）
@@ -244,6 +259,20 @@ chmod +x ~/.claude/hooks/*.sh
 ### 3. 自动执行
 优化完成后，Claude会自动执行任务，不需要二次确认。
 
+### 4. Codex 兼容
+Codex 的 `UserPromptSubmit` 会把 hook 的标准输入包装成 JSON。Node.js 版本会提取其中的 `prompt` 字段，并输出：
+
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": "..."
+  }
+}
+```
+
+不要把优化内容重新包装成 `systemMessage`。`systemMessage` 主要用于 Codex UI/事件提示，不等同于给模型追加开发者上下文。
+
 ---
 
 ## 🧪 测试效果
@@ -333,6 +362,7 @@ node test-hook.js
 - ✅ 测试太短输入（应跳过优化）
 - ✅ 测试正常长文本（应触发优化）
 - ✅ 测试复杂需求（应触发优化）
+- ✅ 测试 Codex JSON 输入（应只提取 `prompt` 字段）
 - ✅ 显示详细的测试结果和日志
 
 ---
