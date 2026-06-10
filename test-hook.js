@@ -40,6 +40,21 @@ const testCases = [
         expectOptimization: true,
         expectContains: '帮我做个小红书营销自动发布器',
         expectNotContains: '"hook_event_name"'
+    },
+    {
+        name: 'Markdown标题输入（应安全包裹，避免渲染成标题）',
+        input: JSON.stringify({
+            hook_event_name: 'UserPromptSubmit',
+            prompt: '# Files mentioned by the user:\n\n## codex-clipboard.png: C:/Users/Kim/AppData/Local/Temp/codex-clipboard.png\n\n## My request for Codex:\n帮我检查为什么输出变成标题格式'
+        }),
+        expectOptimization: true,
+        expectContains: '用户原始输入（已安全包裹，请从代码块中读取原文）',
+        expectNotContains: '第一行必须是：📝 **原始输入**：# Files mentioned by the user:',
+        expectAllContains: [
+            '```text\n[用户的原话，逐字保留]\n```',
+            '```markdown\n[优化后的结构化提示词]\n```',
+            '```text\n# Files mentioned by the user:'
+        ]
     }
 ];
 
@@ -133,6 +148,13 @@ function runTest(testCase, hookTarget) {
                         } else if (testCase.expectNotContains && context.includes(testCase.expectNotContains)) {
                             log(`\n❌ 测试失败：优化内容包含了不应出现的原始JSON字段`, 'red');
                             result.error = `不应包含: ${testCase.expectNotContains}`;
+                        } else if (
+                            testCase.expectAllContains &&
+                            testCase.expectAllContains.some((item) => !context.includes(item))
+                        ) {
+                            const missing = testCase.expectAllContains.filter((item) => !context.includes(item));
+                            log(`\n❌ 测试失败：优化内容没有包含全部预期文本`, 'red');
+                            result.error = `缺少: ${missing.join(', ')}`;
                         } else {
                             log(`\n✅ 测试通过：正确触发了优化`, 'green');
                             result.passed = true;

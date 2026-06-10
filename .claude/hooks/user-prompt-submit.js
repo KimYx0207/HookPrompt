@@ -54,6 +54,18 @@ function readOptimizerTemplate() {
 }
 
 /**
+ * Build a fenced Markdown code block that stays safe even if content contains
+ * triple backticks.
+ */
+function fencedBlock(content, lang = 'text') {
+    const text = String(content ?? '');
+    const matches = text.match(/`+/g) || [];
+    const longest = matches.reduce((max, run) => Math.max(max, run.length), 0);
+    const fence = '`'.repeat(Math.max(3, longest + 1));
+    return `${fence}${lang}\n${text}\n${fence}`;
+}
+
+/**
  * 检查输入是否应该被过滤（不优化）
  * ⚠️ 注意：此函数内不能写日志！否则会被过滤的输入也会产生日志输出
  *
@@ -98,25 +110,40 @@ function shouldFilter(input) {
  * 构建优化请求（JSON格式，符合Claude Code Hook API）
  */
 function buildOptimizationRequest(template, userInput) {
+    const safeUserInputBlock = fencedBlock(userInput, 'text');
+    const outputRawInputExample = fencedBlock('[用户的原话，逐字保留]', 'text');
+    const outputPromptExample = fencedBlock('[优化后的结构化提示词]', 'markdown');
+
     // 强制指令放在最前面，优先级最高
     const forceInstruction = `<MANDATORY_FORMAT_INSTRUCTION>
 【回复格式说明】
 
 你的回复必须严格按以下顺序输出，不得跳过任何部分：
 
-1. 第一行必须是：📝 **原始输入**：${userInput}
+1. 第一行必须是：📝 **原始输入**：
 
-2. 然后是：
+2. 然后必须立刻输出一个 fenced code block，逐字放入用户原始输入。禁止把原始输入裸贴在 Markdown 正文里，避免其中的 #、##、列表、图片路径或代码片段被渲染成标题或格式。
+
+示例：
+
+${outputRawInputExample}
+
+3. 然后是：
 🔄 **优化后的理解**：
 - **Context（上下文）**：[推断的场景、身份、目标]
 - **Task（任务）**：[明确的动作 + 要求]
 - **Format（格式）**：[期望的输出形式]
 
-3. 然后是：
+4. 然后是：
 ✅ **优化后的完整提示词**：
-[优化后的结构化提示词]
 
-4. 最后是分隔线 --- 后执行任务内容
+优化后的完整提示词正文必须放入 fenced code block。禁止把完整提示词正文裸贴在 Markdown 正文里，避免被渲染成大标题。
+
+示例：
+
+${outputPromptExample}
+
+5. 最后是分隔线 --- 后执行任务内容
 
 请在回复开头先展示对用户输入的理解（原始输入 + 优化后的结构化版本），然后再执行任务。这样用户可以看到提示词是如何被优化的。
 </MANDATORY_FORMAT_INSTRUCTION>
@@ -127,9 +154,9 @@ ${template}
 
 ---
 
-## 用户原始输入
+## 用户原始输入（已安全包裹，请从代码块中读取原文）
 
-${userInput}`;
+${safeUserInputBlock}`;
 
     return {
         hookSpecificOutput: {
