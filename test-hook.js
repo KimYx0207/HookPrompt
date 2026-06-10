@@ -42,6 +42,14 @@ const testCases = [
         expectNotContains: '"hook_event_name"'
     },
     {
+        name: 'Codex内部目标续跑（应跳过优化）',
+        input: JSON.stringify({
+            hook_event_name: 'UserPromptSubmit',
+            prompt: '<codex_internal_context source="goal">\nContinue working toward the active thread goal.\n\n<objective>\n继续处理课程正文\n</objective>\n</codex_internal_context>'
+        }),
+        expectOptimization: false
+    },
+    {
         name: 'Markdown标题输入（应安全包裹，避免渲染成标题）',
         input: JSON.stringify({
             hook_event_name: 'UserPromptSubmit',

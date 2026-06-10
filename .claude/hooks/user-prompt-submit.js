@@ -74,6 +74,19 @@ function fencedBlock(content, lang = 'text') {
 function shouldFilter(input) {
     const trimmed = input.trim();
 
+    // Codex App may submit internal goal-continuation context through
+    // UserPromptSubmit. It is not a user prompt and must not be displayed
+    // back as "original input".
+    if (
+        /^<codex_internal_context\b/i.test(trimmed) ||
+        (
+            trimmed.includes('<codex_internal_context') &&
+            trimmed.includes('Continue working toward the active thread goal')
+        )
+    ) {
+        return true;
+    }
+
     // Claude Code 内置命令和Skill命令 - 不应被优化
     // 匹配: /help, /commit, /review-pr, /skill-name:sub-command 等
     if (trimmed.startsWith('/')) {
