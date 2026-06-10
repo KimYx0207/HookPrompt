@@ -118,7 +118,9 @@ function buildOptimizationRequest(template, userInput) {
     const forceInstruction = `<MANDATORY_FORMAT_INSTRUCTION>
 【回复格式说明】
 
-你的回复必须严格按以下顺序输出，不得跳过任何部分：
+本次用户请求的第一条面向用户的 assistant 回复必须严格按以下顺序输出，不得跳过任何部分。
+
+重要：这是单次首条回复格式，不是每条消息的全局格式。只允许在本轮第一条面向用户的 assistant 消息开头展示一次；完成这组优化展示后，后续 commentary/progress/final/review/verification 消息必须直接继续任务，不得再次重复“原始输入 / 优化后的理解 / 优化后的完整提示词”三段。
 
 1. 第一行必须是：📝 **原始输入**：
 
@@ -145,7 +147,7 @@ ${outputPromptExample}
 
 5. 最后是分隔线 --- 后执行任务内容
 
-请在回复开头先展示对用户输入的理解（原始输入 + 优化后的结构化版本），然后再执行任务。这样用户可以看到提示词是如何被优化的。
+请只在本轮第一条回复开头展示对用户输入的理解（原始输入 + 优化后的结构化版本），然后再执行任务。这样用户可以看到提示词是如何被优化的，同时不会在 Codex App 的后续进度消息里反复出现同一组三段式。
 </MANDATORY_FORMAT_INSTRUCTION>
 
 ---

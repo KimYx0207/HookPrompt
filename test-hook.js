@@ -53,7 +53,9 @@ const testCases = [
         expectAllContains: [
             '```text\n[用户的原话，逐字保留]\n```',
             '```markdown\n[优化后的结构化提示词]\n```',
-            '```text\n# Files mentioned by the user:'
+            '```text\n# Files mentioned by the user:',
+            '只允许在本轮第一条面向用户的 assistant 消息开头展示一次',
+            '后续 commentary/progress/final/review/verification 消息必须直接继续任务'
         ]
     }
 ];
