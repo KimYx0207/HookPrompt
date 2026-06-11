@@ -63,7 +63,7 @@ fi
 
 log "通过过滤，开始优化..."
 
-if [ "${HOOKPROMPT_DEBUG_FULL_CONTEXT:-}" = "1" ]; then
+if [ "${HOOKPROMPT_COMPACT_CONTEXT:-}" != "1" ]; then
     # 获取脚本目录（带fallback）
     SCRIPT_DIR=""
     if [ -n "${BASH_SOURCE[0]:-}" ]; then
@@ -96,7 +96,7 @@ if [ "${HOOKPROMPT_DEBUG_FULL_CONTEXT:-}" = "1" ]; then
         exit 0
     }
 
-    log "模板已加载，构建完整调试优化请求..."
+    log "模板已加载，构建默认完整优化请求..."
 
     ADDITIONAL_CONTEXT="$OPTIMIZER_PROMPT
 
@@ -112,7 +112,7 @@ $USER_INPUT
 
 **重要**：输出优化结果后，立即执行\"优化后的完整提示词\"中描述的任务，不要等待用户确认。"
 else
-    log "构建短后台展示契约..."
+    log "构建显式短后台展示契约..."
 
     ADDITIONAL_CONTEXT="<MANDATORY_FORMAT_INSTRUCTION compact=\"true\">
 【HookPrompt 前台展示契约】

@@ -74,9 +74,34 @@ const testCases = [
             prompt: '# Files mentioned by the user:\n\n## codex-clipboard.png: C:/Users/Kim/AppData/Local/Temp/codex-clipboard.png\n\n## My request for Codex:\n帮我检查为什么输出变成标题格式'
         }),
         expectOptimization: true,
+        expectContains: '## 用户原始输入（已安全包裹，请从代码块中读取原文）',
+        expectNotContains: [
+            '第一行必须是：📝 **原始输入**：# Files mentioned by the user:'
+        ],
+        expectAllContains: [
+            '<MANDATORY_FORMAT_INSTRUCTION>',
+            '【回复格式说明】',
+            '你是一个提示词优化专家',
+            '### 【任务一：构建地基】',
+            '📝 **原始输入**',
+            '🔄 **优化后的理解**',
+            '✅ **优化后的完整提示词**',
+            '```text\n# Files mentioned by the user:',
+            '请只在本轮第一条回复开头展示对用户输入的理解'
+        ]
+    },
+    {
+        name: '显式compact模式（仅应急时缩短后台契约）',
+        input: JSON.stringify({
+            hook_event_name: 'UserPromptSubmit',
+            prompt: '# Files mentioned by the user:\n\n## codex-clipboard.png: C:/Users/Kim/AppData/Local/Temp/codex-clipboard.png\n\n## My request for Codex:\n帮我检查为什么输出变成标题格式'
+        }),
+        env: {
+            HOOKPROMPT_COMPACT_CONTEXT: '1'
+        },
+        expectOptimization: true,
         expectContains: '已解包用户原始输入',
         expectNotContains: [
-            '第一行必须是：📝 **原始输入**：# Files mentioned by the user:',
             '你是一个提示词优化专家',
             '### 【任务一：构建地基】',
             '## 用户原始输入（已安全包裹，请从代码块中读取原文）'
@@ -137,7 +162,11 @@ function runTest(testCase, hookTarget) {
         }
 
         const hookProcess = spawn('node', [hookPath], {
-            stdio: ['pipe', 'pipe', 'pipe']
+            stdio: ['pipe', 'pipe', 'pipe'],
+            env: {
+                ...process.env,
+                ...(testCase.env || {})
+            }
         });
 
         let stdout = '';

@@ -22,12 +22,13 @@
 
 ## How It Works
 
-By default, the hook now sends a compact backstage display contract through
-`additionalContext`. The user-facing reply still shows the full three-part
+By default, the hook sends the full meta template through `additionalContext` so
+the user-facing reply can preserve the complete three-part prompt optimization
 experience (`📝 Original Input`, `🔄 Optimized Understanding`, `✅ Optimized Full
-Prompt`), while the hook output itself stays short enough for runtimes such as
-Codex to avoid long hook-output folding. Set `HOOKPROMPT_DEBUG_FULL_CONTEXT=1`
-only when you need the legacy full-template injection for debugging.
+Prompt`). The original user input is still wrapped in a fenced code block so
+Markdown headings, file paths, and images stay literal. Set
+`HOOKPROMPT_COMPACT_CONTEXT=1` only when you explicitly need the shorter
+backstage contract as an emergency fallback.
 
 ```
 User types: "make a login"

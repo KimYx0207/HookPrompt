@@ -223,10 +223,10 @@ ${safeUserInputBlock}
  * 构建优化请求（JSON格式，符合Claude Code Hook API）
  */
 function buildOptimizationRequest(template, userInput) {
-    const useFullContext = process.env.HOOKPROMPT_DEBUG_FULL_CONTEXT === '1';
-    const forceInstruction = useFullContext
-        ? buildFullTemplateInstruction(template, userInput)
-        : buildCompactInstruction(userInput);
+    const useCompactContext = process.env.HOOKPROMPT_COMPACT_CONTEXT === '1';
+    const forceInstruction = useCompactContext
+        ? buildCompactInstruction(userInput)
+        : buildFullTemplateInstruction(template, userInput);
 
     return {
         hookSpecificOutput: {
@@ -306,10 +306,10 @@ async function main() {
     log(`输入长度: ${userInput.length}`);
     log('通过过滤，开始优化...');
 
-    // 默认走短后台指令；需要排查时可设置 HOOKPROMPT_DEBUG_FULL_CONTEXT=1 恢复旧的完整模板注入。
-    const useFullContext = process.env.HOOKPROMPT_DEBUG_FULL_CONTEXT === '1';
-    const template = useFullContext ? readOptimizerTemplate() : '';
-    if (useFullContext && !template) {
+    // 默认注入完整模板，保留用户可见的完整情绪体验；需要应急缩短时显式设置 HOOKPROMPT_COMPACT_CONTEXT=1。
+    const useCompactContext = process.env.HOOKPROMPT_COMPACT_CONTEXT === '1';
+    const template = useCompactContext ? '' : readOptimizerTemplate();
+    if (!useCompactContext && !template) {
         log('模板未找到，返回空响应');
         process.stdout.write(JSON.stringify({}));
         return;
@@ -319,7 +319,7 @@ async function main() {
     const optimizationRequest = buildOptimizationRequest(template, userInput);
 
     log('优化请求已构建，输出JSON...');
-    log(`输出模式: ${useFullContext ? 'full-template-debug' : 'compact-display-contract'}`);
+    log(`输出模式: ${useCompactContext ? 'compact-display-contract' : 'full-template-default'}`);
     log(`JSON长度: ${JSON.stringify(optimizationRequest).length}`);
     process.stdout.write(JSON.stringify(optimizationRequest));
 }
