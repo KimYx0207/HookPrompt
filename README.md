@@ -38,6 +38,12 @@
 
 ## 📋 更新日志
 
+### v1.2.7 (2026-06-11) - **修复：短后台契约，保留前台完整体验** 🧩
+- ✅ **避免长 Hook 输出折叠**：默认不再把完整 meta 模板塞进 `additionalContext`，只注入短后台展示契约
+- ✅ **保留用户可见三段式**：前台仍要求完整展示 `📝 原始输入 / 🔄 优化后的理解 / ✅ 优化后的完整提示词`
+- ✅ **保留调试开关**：设置 `HOOKPROMPT_DEBUG_FULL_CONTEXT=1` 可临时恢复旧的完整模板注入
+- ✅ **覆盖 Claude Code / Codex / Cursor**：共享 Node/Bash Hook 逻辑，Codex/Cursor adapter 继续复用同一契约
+
 ### v1.2.6 (2026-06-10) - **新增：Codex UserPromptSubmit 正式适配** 🔧
 - ✅ **新增 Codex 项目级入口**：提供 `.codex/hooks.json` 和 `.codex/hooks/user-prompt-submit.js`
 - ✅ **修复 Codex 上下文注入语义**：保持 `hookSpecificOutput.additionalContext`，避免被错误包装成只显示给 UI 的 `systemMessage`

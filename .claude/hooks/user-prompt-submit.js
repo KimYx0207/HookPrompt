@@ -137,16 +137,12 @@ function shouldFilter(input) {
     return false;
 }
 
-/**
- * 构建优化请求（JSON格式，符合Claude Code Hook API）
- */
-function buildOptimizationRequest(template, userInput) {
+function buildFullTemplateInstruction(template, userInput) {
     const safeUserInputBlock = fencedBlock(userInput, 'text');
     const outputRawInputExample = fencedBlock('[用户的原话，逐字保留]', 'text');
     const outputPromptExample = fencedBlock('[优化后的结构化提示词]', 'markdown');
 
-    // 强制指令放在最前面，优先级最高
-    const forceInstruction = `<MANDATORY_FORMAT_INSTRUCTION>
+    return `<MANDATORY_FORMAT_INSTRUCTION>
 【回复格式说明】
 
 本次用户请求的第一条面向用户的 assistant 回复必须严格按以下顺序输出，不得跳过任何部分。
@@ -190,6 +186,47 @@ ${template}
 ## 用户原始输入（已安全包裹，请从代码块中读取原文）
 
 ${safeUserInputBlock}`;
+}
+
+function buildCompactInstruction(userInput) {
+    const safeUserInputBlock = fencedBlock(userInput, 'text');
+
+    return `<MANDATORY_FORMAT_INSTRUCTION compact="true">
+【HookPrompt 前台展示契约】
+
+本条 additionalContext 是后台指令，不要把它原样展示给用户。
+
+本轮第一条面向用户的 assistant 回复必须以完整 HookPrompt 三段式开头：
+
+1. 第一行：📝 **原始输入**：
+   下一段必须是 fenced text code block，逐字放入用户原始输入。若下方提供“已解包用户原始输入”，优先使用它。
+
+2. 然后输出：🔄 **优化后的理解**：
+   用 3 个 bullet 展示 Context（上下文）、Task（任务）、Format（格式）。
+
+3. 然后输出：✅ **优化后的完整提示词**：
+   下一段必须是 fenced markdown code block，写出完整、可执行、结构化的优化提示词。
+
+4. 最后输出 --- 分隔线，再继续完成用户真实任务。
+
+只在本轮第一条可见回复展示一次三段式；后续 commentary、progress、final、review、verification 直接继续任务，不重复三段式。
+
+优化提示词时使用 CTF：上下文、任务、格式；复杂任务可加入 Critical / Fetch / Thinking / Review。保留用户可见的完整体验，但保持后台 hook 输出简短。
+
+已解包用户原始输入：
+
+${safeUserInputBlock}
+</MANDATORY_FORMAT_INSTRUCTION>`;
+}
+
+/**
+ * 构建优化请求（JSON格式，符合Claude Code Hook API）
+ */
+function buildOptimizationRequest(template, userInput) {
+    const useFullContext = process.env.HOOKPROMPT_DEBUG_FULL_CONTEXT === '1';
+    const forceInstruction = useFullContext
+        ? buildFullTemplateInstruction(template, userInput)
+        : buildCompactInstruction(userInput);
 
     return {
         hookSpecificOutput: {
@@ -269,9 +306,10 @@ async function main() {
     log(`输入长度: ${userInput.length}`);
     log('通过过滤，开始优化...');
 
-    // 读取模板
-    const template = readOptimizerTemplate();
-    if (!template) {
+    // 默认走短后台指令；需要排查时可设置 HOOKPROMPT_DEBUG_FULL_CONTEXT=1 恢复旧的完整模板注入。
+    const useFullContext = process.env.HOOKPROMPT_DEBUG_FULL_CONTEXT === '1';
+    const template = useFullContext ? readOptimizerTemplate() : '';
+    if (useFullContext && !template) {
         log('模板未找到，返回空响应');
         process.stdout.write(JSON.stringify({}));
         return;
@@ -281,6 +319,7 @@ async function main() {
     const optimizationRequest = buildOptimizationRequest(template, userInput);
 
     log('优化请求已构建，输出JSON...');
+    log(`输出模式: ${useFullContext ? 'full-template-debug' : 'compact-display-contract'}`);
     log(`JSON长度: ${JSON.stringify(optimizationRequest).length}`);
     process.stdout.write(JSON.stringify(optimizationRequest));
 }

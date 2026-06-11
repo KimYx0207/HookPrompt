@@ -63,42 +63,42 @@ fi
 
 log "通过过滤，开始优化..."
 
-# 获取脚本目录（带fallback）
-SCRIPT_DIR=""
-if [ -n "${BASH_SOURCE[0]:-}" ]; then
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)" || true
-fi
+if [ "${HOOKPROMPT_DEBUG_FULL_CONTEXT:-}" = "1" ]; then
+    # 获取脚本目录（带fallback）
+    SCRIPT_DIR=""
+    if [ -n "${BASH_SOURCE[0]:-}" ]; then
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)" || true
+    fi
 
-# 查找模板文件
-OPTIMIZER_PROMPT_FILE=""
-if [ -n "$SCRIPT_DIR" ]; then
-    CLAUDE_DIR="$(dirname "$SCRIPT_DIR")"
-    OPTIMIZER_PROMPT_FILE="$CLAUDE_DIR/prompt-optimizer-meta.md"
-fi
+    # 查找模板文件
+    OPTIMIZER_PROMPT_FILE=""
+    if [ -n "$SCRIPT_DIR" ]; then
+        CLAUDE_DIR="$(dirname "$SCRIPT_DIR")"
+        OPTIMIZER_PROMPT_FILE="$CLAUDE_DIR/prompt-optimizer-meta.md"
+    fi
 
-# 备选：用户主目录
-if [ ! -f "$OPTIMIZER_PROMPT_FILE" ]; then
-    OPTIMIZER_PROMPT_FILE="$HOME/.claude/prompt-optimizer-meta.md"
-fi
+    # 备选：用户主目录
+    if [ ! -f "$OPTIMIZER_PROMPT_FILE" ]; then
+        OPTIMIZER_PROMPT_FILE="$HOME/.claude/prompt-optimizer-meta.md"
+    fi
 
-# 检查模板是否存在
-if [ ! -f "$OPTIMIZER_PROMPT_FILE" ]; then
-    log "错误：模板文件未找到"
-    echo "{}"
-    exit 0
-fi
+    # 检查模板是否存在
+    if [ ! -f "$OPTIMIZER_PROMPT_FILE" ]; then
+        log "错误：模板文件未找到"
+        echo "{}"
+        exit 0
+    fi
 
-# 读取模板
-OPTIMIZER_PROMPT=$(cat "$OPTIMIZER_PROMPT_FILE") || {
-    log "错误：读取模板文件失败"
-    echo "{}"
-    exit 0
-}
+    # 读取模板
+    OPTIMIZER_PROMPT=$(cat "$OPTIMIZER_PROMPT_FILE") || {
+        log "错误：读取模板文件失败"
+        echo "{}"
+        exit 0
+    }
 
-log "模板已加载，构建优化请求..."
+    log "模板已加载，构建完整调试优化请求..."
 
-# 构建优化上下文内容
-ADDITIONAL_CONTEXT="$OPTIMIZER_PROMPT
+    ADDITIONAL_CONTEXT="$OPTIMIZER_PROMPT
 
 ---
 
@@ -111,6 +111,38 @@ $USER_INPUT
 请严格按照格式输出优化结果，最后必须包含完整的优化后提示词。
 
 **重要**：输出优化结果后，立即执行\"优化后的完整提示词\"中描述的任务，不要等待用户确认。"
+else
+    log "构建短后台展示契约..."
+
+    ADDITIONAL_CONTEXT="<MANDATORY_FORMAT_INSTRUCTION compact=\"true\">
+【HookPrompt 前台展示契约】
+
+本条 additionalContext 是后台指令，不要把它原样展示给用户。
+
+本轮第一条面向用户的 assistant 回复必须以完整 HookPrompt 三段式开头：
+
+1. 第一行：📝 **原始输入**：
+   下一段必须是 fenced text code block，逐字放入用户原始输入。若下方提供“已解包用户原始输入”，优先使用它。
+
+2. 然后输出：🔄 **优化后的理解**：
+   用 3 个 bullet 展示 Context（上下文）、Task（任务）、Format（格式）。
+
+3. 然后输出：✅ **优化后的完整提示词**：
+   下一段必须是 fenced markdown code block，写出完整、可执行、结构化的优化提示词。
+
+4. 最后输出 --- 分隔线，再继续完成用户真实任务。
+
+只在本轮第一条可见回复展示一次三段式；后续 commentary、progress、final、review、verification 直接继续任务，不重复三段式。
+
+优化提示词时使用 CTF：上下文、任务、格式；复杂任务可加入 Critical / Fetch / Thinking / Review。保留用户可见的完整体验，但保持后台 hook 输出简短。
+
+已解包用户原始输入：
+
+\`\`\`text
+$USER_INPUT
+\`\`\`
+</MANDATORY_FORMAT_INSTRUCTION>"
+fi
 
 # 输出JSON格式（使用jq或手动构建）
 # 为了兼容性，手动构建JSON（转义特殊字符）

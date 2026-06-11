@@ -74,14 +74,22 @@ const testCases = [
             prompt: '# Files mentioned by the user:\n\n## codex-clipboard.png: C:/Users/Kim/AppData/Local/Temp/codex-clipboard.png\n\n## My request for Codex:\n帮我检查为什么输出变成标题格式'
         }),
         expectOptimization: true,
-        expectContains: '用户原始输入（已安全包裹，请从代码块中读取原文）',
-        expectNotContains: '第一行必须是：📝 **原始输入**：# Files mentioned by the user:',
+        expectContains: '已解包用户原始输入',
+        expectNotContains: [
+            '第一行必须是：📝 **原始输入**：# Files mentioned by the user:',
+            '你是一个提示词优化专家',
+            '### 【任务一：构建地基】',
+            '## 用户原始输入（已安全包裹，请从代码块中读取原文）'
+        ],
+        expectMaxContextLength: 2600,
         expectAllContains: [
-            '```text\n[用户的原话，逐字保留]\n```',
-            '```markdown\n[优化后的结构化提示词]\n```',
+            '<MANDATORY_FORMAT_INSTRUCTION compact="true">',
+            '📝 **原始输入**',
+            '🔄 **优化后的理解**',
+            '✅ **优化后的完整提示词**',
             '```text\n# Files mentioned by the user:',
-            '只允许在本轮第一条面向用户的 assistant 消息开头展示一次',
-            '后续 commentary/progress/final/review/verification 消息必须直接继续任务'
+            '只在本轮第一条可见回复展示一次三段式',
+            '保持后台 hook 输出简短'
         ]
     }
 ];
@@ -170,12 +178,17 @@ function runTest(testCase, hookTarget) {
                 if (testCase.expectOptimization) {
                     if (hasOptimization) {
                         const context = jsonOutput.hookSpecificOutput.additionalContext;
+                        const forbiddenItems = Array.isArray(testCase.expectNotContains)
+                            ? testCase.expectNotContains
+                            : (testCase.expectNotContains ? [testCase.expectNotContains] : []);
+
                         if (testCase.expectContains && !context.includes(testCase.expectContains)) {
                             log(`\n❌ 测试失败：优化内容没有包含预期文本`, 'red');
                             result.error = `缺少: ${testCase.expectContains}`;
-                        } else if (testCase.expectNotContains && context.includes(testCase.expectNotContains)) {
+                        } else if (forbiddenItems.some((item) => context.includes(item))) {
+                            const found = forbiddenItems.filter((item) => context.includes(item));
                             log(`\n❌ 测试失败：优化内容包含了不应出现的原始JSON字段`, 'red');
-                            result.error = `不应包含: ${testCase.expectNotContains}`;
+                            result.error = `不应包含: ${found.join(', ')}`;
                         } else if (
                             testCase.expectAllContains &&
                             testCase.expectAllContains.some((item) => !context.includes(item))
@@ -183,6 +196,12 @@ function runTest(testCase, hookTarget) {
                             const missing = testCase.expectAllContains.filter((item) => !context.includes(item));
                             log(`\n❌ 测试失败：优化内容没有包含全部预期文本`, 'red');
                             result.error = `缺少: ${missing.join(', ')}`;
+                        } else if (
+                            testCase.expectMaxContextLength &&
+                            context.length > testCase.expectMaxContextLength
+                        ) {
+                            log(`\n❌ 测试失败：additionalContext 过长`, 'red');
+                            result.error = `长度 ${context.length} > ${testCase.expectMaxContextLength}`;
                         } else {
                             log(`\n✅ 测试通过：正确触发了优化`, 'green');
                             result.passed = true;
@@ -250,6 +269,9 @@ async function main() {
     const totalCount = results.length;
 
     log(`\n总计: ${passedCount}/${totalCount} 通过`, passedCount === totalCount ? 'green' : 'red');
+    if (passedCount !== totalCount) {
+        process.exitCode = 1;
+    }
 
     // 检查日志文件
     const os = require('os');

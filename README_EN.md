@@ -22,6 +22,13 @@
 
 ## How It Works
 
+By default, the hook now sends a compact backstage display contract through
+`additionalContext`. The user-facing reply still shows the full three-part
+experience (`📝 Original Input`, `🔄 Optimized Understanding`, `✅ Optimized Full
+Prompt`), while the hook output itself stays short enough for runtimes such as
+Codex to avoid long hook-output folding. Set `HOOKPROMPT_DEBUG_FULL_CONTEXT=1`
+only when you need the legacy full-template injection for debugging.
+
 ```
 User types: "make a login"
     ↓
