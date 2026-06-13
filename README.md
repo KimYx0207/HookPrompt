@@ -9,7 +9,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Language](https://img.shields.io/badge/language-JavaScript-orange.svg)
 
-**谷歌 68 页提示词工程圣经 + 5 任务元提示词 → 自动执行的 Hook**
+**Role-first + Outcome-contract + Tagged structure → 自动执行的 Hook**
 
 </div>
 
@@ -31,12 +31,18 @@
 
 ---
 
-> 把谷歌68页圣经+5任务元提示词变成自动执行的Hook
+> 把 role-first、结果契约和结构化提示词变成自动执行的 Hook
 > 你随便说两句大白话，AI自动翻译成专业提示词
 
 ---
 
 ## 📋 更新日志
+
+### v1.2.9 (2026-06-13) - **升级：Outcome-contract + 短诊断输入触发** 🎯
+- ✅ **升级提示词模板**：从 CTF / 5任务主叙事升级为 role-first、outcome-contract、tagged structure、success criteria 和 verification plan
+- ✅ **修复短诊断输入**：`这个不行`、`报错了`、`帮我看看` 这类短但有任务意图的输入现在会触发优化
+- ✅ **保留简单回复过滤**：`好的`、`继续`、`ok` 等纯确认回复仍然跳过优化
+- ✅ **同步 Claude / Codex 测试**：新增短诊断、短错误反馈、短检查请求回归测试
 
 ### v1.2.8 (2026-06-11) - **修复：默认完整体验，compact 仅显式应急** 🧩
 - ✅ **默认完整模板注入**：默认把完整 meta 模板放进 `additionalContext`，保留用户可见的完整提示词优化体验
@@ -106,7 +112,7 @@
     ↓
 Hook拦截
     ↓
-调用优化逻辑
+调用 role-first + outcome-contract 优化逻辑
     ↓
 输出优化后的专业提示词：
     📝 原始输入：做个登录
@@ -150,7 +156,7 @@ Claude自动执行任务
 
 1. 用Claude Code打开这个项目目录
 2. **首次使用前运行测试**：`node test-hook.js`（可选，验证功能）
-3. 随便说点什么测试（超过10个字符）
+3. 随便说点什么测试：普通需求，或“这个不行 / 报错了 / 帮我看看”这类短诊断输入
 4. 看Hook是否显示优化过程
 
 ### 方法2：复制到其他项目
@@ -262,7 +268,8 @@ chmod +x ~/.claude/hooks/*.sh
 | 输入类型 | 是否优化 |
 |---------|---------|
 | Claude Code内置命令（`/clear`、`/help`等） | ❌ 不优化 |
-| 简短问题（<10字符） | ❌ 不优化 |
+| 短诊断 / 修复意图（`这个不行`、`报错了`、`帮我看看`） | ✅ 优化 |
+| 无任务含义的短输入 | ❌ 不优化 |
 | 简单回复（"好的"、"继续"） | ❌ 不优化 |
 | 正常需求描述 | ✅ 优化 |
 
@@ -353,7 +360,7 @@ Codex 的 `UserPromptSubmit` 会把 hook 的标准输入包装成 JSON。Node.js
 ### 自定义优化规则
 
 编辑 `.claude/prompt-optimizer-meta.md`：
-- 修改CTF公式应用方式
+- 修改 role-first / outcome-contract / tagged structure 应用方式
 - 调整输出格式
 - 添加自定义检查项
 
@@ -369,7 +376,8 @@ node test-hook.js
 
 测试脚本会：
 - ✅ 测试简短回复（应跳过优化）
-- ✅ 测试太短输入（应跳过优化）
+- ✅ 测试无任务短输入（应跳过优化）
+- ✅ 测试短诊断 / 错误 / 检查请求（应触发优化）
 - ✅ 测试正常长文本（应触发优化）
 - ✅ 测试复杂需求（应触发优化）
 - ✅ 测试 Codex JSON 输入（应只提取 `prompt` 字段）
@@ -463,7 +471,7 @@ return {
 ### 问题3：没有显示优化过程
 
 **可能原因**：
-- 你的输入太短（<10字符）
+- 你的输入太短且没有诊断、修复、优化或检查意图
 - 输入是简单回复（"好的"、"继续"等）
 - Hook工作正常，但返回了空响应
 
@@ -524,7 +532,7 @@ chmod +x .claude/hooks/*.sh
 Hook的核心脚本（Node.js版）：
 - 跨平台支持
 - 拦截用户输入
-- 智能过滤简单问题
+- 智能过滤简单回复，同时保留短诊断输入触发
 - 调用优化逻辑
 - 返回优化后的提示词
 
@@ -535,8 +543,9 @@ Hook的Bash版本（Mac/Linux）：
 
 ### 3. `prompt-optimizer-meta.md` ⭐⭐⭐
 优化提示词模板：
-- 5任务元提示词完整版
-- CTF公式应用规则
+- role-first 提示词架构
+- outcome-contract 与 tagged structure
+- success criteria / verification plan
 - 输出格式规范
 - 示例参考
 
@@ -549,13 +558,13 @@ Hook配置文件：
 
 ## 💡 核心思想
 
-**把谷歌68页圣经+5任务元提示词的规则，变成自动执行的流程。**
+**把 role-first、结果契约、结构化标签和验证计划，变成自动执行的流程。**
 
 你不用记住所有规则。
 
-你不用每次都检查CTF公式。
+你不用每次都手写目标、范围、验收和验证计划。
 
-你不用纠结该用Zero-Shot还是CoT。
+你不用纠结短句到底要不要优化：有任务意图就触发，纯确认就跳过。
 
 **Hook帮你全干了。**
 

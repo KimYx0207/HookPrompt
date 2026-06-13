@@ -22,6 +22,30 @@ const testCases = [
         expectOptimization: false
     },
     {
+        name: '短诊断输入（应触发优化）',
+        input: '这个不行',
+        expectOptimization: true,
+        expectContains: '这个不行'
+    },
+    {
+        name: '短错误反馈（应触发优化）',
+        input: '报错了',
+        expectOptimization: true,
+        expectContains: '报错了'
+    },
+    {
+        name: '短检查请求（应触发优化）',
+        input: '帮我看看',
+        expectOptimization: true,
+        expectContains: '帮我看看'
+    },
+    {
+        name: '英文短错误反馈（应触发优化）',
+        input: 'error',
+        expectOptimization: true,
+        expectContains: 'error'
+    },
+    {
         name: '正常长文本（应触发优化）',
         input: '帮我写一个用户登录功能',
         expectOptimization: true
@@ -81,8 +105,10 @@ const testCases = [
         expectAllContains: [
             '<MANDATORY_FORMAT_INSTRUCTION>',
             '【回复格式说明】',
-            '你是一个提示词优化专家',
-            '### 【任务一：构建地基】',
+            '你是一个提示词优化层',
+            'Outcome-contract first',
+            '<success_criteria>',
+            '<verification_plan>',
             '📝 **原始输入**',
             '🔄 **优化后的理解**',
             '✅ **优化后的完整提示词**',
@@ -102,8 +128,8 @@ const testCases = [
         expectOptimization: true,
         expectContains: '已解包用户原始输入',
         expectNotContains: [
-            '你是一个提示词优化专家',
-            '### 【任务一：构建地基】',
+            '你是一个提示词优化层',
+            'Outcome-contract first',
             '## 用户原始输入（已安全包裹，请从代码块中读取原文）'
         ],
         expectMaxContextLength: 2600,
@@ -114,6 +140,7 @@ const testCases = [
             '✅ **优化后的完整提示词**',
             '```text\n# Files mentioned by the user:',
             '只在本轮第一条可见回复展示一次三段式',
+            'outcome-contract',
             '保持后台 hook 输出简短'
         ]
     }

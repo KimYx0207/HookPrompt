@@ -9,13 +9,13 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Language](https://img.shields.io/badge/language-JavaScript-orange.svg)
 
-**Google's 68-page Prompt Engineering Guide + 5-Task Meta-Prompting → Auto-executing Hook**
+**Role-first + Outcome-contract + Tagged structure → Auto-executing Hook**
 
 </div>
 
 ---
 
-> Turn Google's 68-page prompt engineering bible + 5-task meta-prompting into an auto-executing Hook.
+> Turn role-first prompting, outcome contracts, and tagged structure into an auto-executing Hook.
 > Just type casual phrases — AI automatically translates them into professional prompts.
 
 ---
@@ -35,7 +35,7 @@ User types: "make a login"
     ↓
 Hook intercepts
     ↓
-Applies optimization logic (CTF formula, CoT/ToT selection)
+Applies role-first + outcome-contract optimization
     ↓
 Outputs structured professional prompt:
     📝 Original Input: make a login
@@ -55,7 +55,7 @@ Claude auto-executes the task
 ### Method 1: Use in This Project
 1. Open this project directory with Claude Code
 2. Run tests (optional): `node test-hook.js`
-3. Type anything (>10 characters) to test
+3. Type a normal request, or a short diagnostic phrase such as "this does not work" / "error" / "please check"
 4. Watch the Hook display the optimization process
 
 ### Method 2: Copy to Another Project
@@ -73,8 +73,9 @@ cp -r .codex /your/project/root/
 
 **Windows:**
 ```powershell
-Copy-Item -Recurse .claude\hooks /c/Users/admin\.claude\hooks
-Copy-Item .claude\prompt-optimizer-meta.md /c/Users/admin\.claude```
+Copy-Item -Recurse .claude\hooks $HOME\.claude\hooks
+Copy-Item .claude\prompt-optimizer-meta.md $HOME\.claude\
+```
 
 **Mac/Linux:**
 ```bash
@@ -130,7 +131,8 @@ Do not wrap the optimized prompt as `systemMessage`; in Codex that is a UI/event
 | Input Type | Optimized? |
 |-----------|-----------|
 | Built-in commands (`/clear`, `/help`) | ❌ Skip |
-| Short questions (<10 chars) | ❌ Skip |
+| Short diagnostic / repair intent ("does not work", "error", "please check") | ✅ Optimize |
+| Short input with no task intent | ❌ Skip |
 | Simple replies ("ok", "continue") | ❌ Skip |
 | Normal requirement descriptions | ✅ Optimize |
 
@@ -176,9 +178,9 @@ return { hookEventName: "UserPromptSubmit", hookSpecificOutput: { ... } };
 
 ## Core Idea
 
-**Turn Google's 68-page prompt engineering bible + 5-task meta-prompting rules into an automatic workflow.**
+**Turn role-first prompting, outcome contracts, tagged structure, and verification plans into an automatic workflow.**
 
-You don't need to memorize all the rules. You don't need to check the CTF formula every time. You don't need to decide between Zero-Shot and CoT.
+You don't need to hand-write goals, scope, acceptance criteria, and verification plans every time. Short task feedback is optimized; pure confirmations are skipped.
 
 **The Hook does it all for you.**
 

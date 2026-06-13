@@ -53,9 +53,17 @@ case "$USER_INPUT" in
         ;;
 esac
 
-# 过滤：太短（< 10字符）
+# 短但带诊断/修复/优化意图的输入也应进入优化层。
+SHORT_TASK_INTENT=0
+case "$USER_INPUT" in
+    这个不行|这不行|不行|这个不对|这不对|不对|有问题|报错|报错了|失败了|错了|坏了|乱了|太乱|太乱了|不好看|卡住了|跑不通|看不懂|帮我看看|看看|看下|检查|排查|修复|修一下|改一下|优化一下|整理一下|error|failed|failure|broken|bug|pleasecheck|"please check"|checkthis|"check this"|fixthis|"fix this"|"this does not work"|"this doesn't work"|thisdoesnotwork|thisdoesntwork)
+        SHORT_TASK_INTENT=1
+        ;;
+esac
+
+# 过滤：太短且没有可执行意图
 INPUT_LENGTH=${#USER_INPUT}
-if [ "$INPUT_LENGTH" -lt 10 ]; then
+if [ "$INPUT_LENGTH" -lt 10 ] && [ "$SHORT_TASK_INTENT" -ne 1 ]; then
     log "输入太短 ($INPUT_LENGTH < 10)，跳过优化"
     echo "{}"
     exit 0
@@ -102,9 +110,11 @@ if [ "${HOOKPROMPT_COMPACT_CONTEXT:-}" != "1" ]; then
 
 ---
 
-## 用户原始输入
+## 用户原始输入（已安全包裹，请从代码块中读取原文）
 
+\`\`\`text
 $USER_INPUT
+\`\`\`
 
 ---
 
@@ -134,7 +144,7 @@ else
 
 只在本轮第一条可见回复展示一次三段式；后续 commentary、progress、final、review、verification 直接继续任务，不重复三段式。
 
-优化提示词时使用 CTF：上下文、任务、格式；复杂任务可加入 Critical / Fetch / Thinking / Review。保留用户可见的完整体验，但保持后台 hook 输出简短。
+优化提示词时使用 role-first + outcome-contract + tagged structure；首屏理解可保留 CTF 摘要，复杂任务可加入 Critical / Fetch / Thinking / Review 的结果摘要。保留用户可见的完整体验，但保持后台 hook 输出简短。
 
 已解包用户原始输入：
 

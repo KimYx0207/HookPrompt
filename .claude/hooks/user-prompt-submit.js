@@ -83,6 +83,19 @@ function extractCodexDelegationInput(value) {
     return decodeXmlEntities(match[1]).trim();
 }
 
+function hasShortTaskIntent(input) {
+    const trimmed = String(input ?? '').trim();
+    const compact = trimmed.replace(/\s+/g, '');
+    const diagnosticPatterns = [
+        /^(这个|这|这里|刚才|上面)?(不行|不对|有问题|报错了?|失败了?|错了|坏了|乱了|太乱了?|不好看|卡住了?|跑不通|看不懂)$/i,
+        /^(帮我)?(看看|看下|检查|排查|修复|修一下|改一下|优化一下|整理一下)$/i,
+        /^(this|it|that)?(doesnot|doesnt|isnot|isnt)?(work|working)$/i,
+        /^(error|failed|failure|broken|bug|pleasecheck|checkthis|fixthis)$/i
+    ];
+
+    return diagnosticPatterns.some((pattern) => pattern.test(compact));
+}
+
 /**
  * 检查输入是否应该被过滤（不优化）
  * ⚠️ 注意：此函数内不能写日志！否则会被过滤的输入也会产生日志输出
@@ -129,7 +142,12 @@ function shouldFilter(input) {
         return true;
     }
 
-    // 太短（< 10字符）
+    // 短但带诊断/修复/优化意图的输入也应进入优化层，例如“这个不行”“报错了”。
+    if (hasShortTaskIntent(trimmed)) {
+        return false;
+    }
+
+    // 太短且没有可执行意图
     if (trimmed.length < 10) {
         return true;
     }
@@ -211,7 +229,7 @@ function buildCompactInstruction(userInput) {
 
 只在本轮第一条可见回复展示一次三段式；后续 commentary、progress、final、review、verification 直接继续任务，不重复三段式。
 
-优化提示词时使用 CTF：上下文、任务、格式；复杂任务可加入 Critical / Fetch / Thinking / Review。保留用户可见的完整体验，但保持后台 hook 输出简短。
+优化提示词时使用 role-first + outcome-contract + tagged structure；首屏理解可保留 CTF 摘要，复杂任务可加入 Critical / Fetch / Thinking / Review 的结果摘要。保留用户可见的完整体验，但保持后台 hook 输出简短。
 
 已解包用户原始输入：
 
