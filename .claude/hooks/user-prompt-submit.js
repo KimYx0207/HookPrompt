@@ -96,6 +96,11 @@ function hasShortTaskIntent(input) {
     return diagnosticPatterns.some((pattern) => pattern.test(compact));
 }
 
+function isPromptLevelSlashCommand(input) {
+    const trimmed = String(input ?? '').trim();
+    return /^\/(?:meta-theory|meta_theory)(?:\s|$)/i.test(trimmed);
+}
+
 /**
  * 检查输入是否应该被过滤（不优化）
  * ⚠️ 注意：此函数内不能写日志！否则会被过滤的输入也会产生日志输出
@@ -118,9 +123,10 @@ function shouldFilter(input) {
         return true;
     }
 
-    // Claude Code 内置命令和Skill命令 - 不应被优化
+    // Claude Code 内置命令和Skill命令 - 不应被优化。
+    // Meta_Kim 的 /meta-theory 是 prompt 级治理入口，仍需要 HookPrompt 首屏理解。
     // 匹配: /help, /commit, /review-pr, /skill-name:sub-command 等
-    if (trimmed.startsWith('/')) {
+    if (trimmed.startsWith('/') && !isPromptLevelSlashCommand(trimmed)) {
         return true;
     }
 

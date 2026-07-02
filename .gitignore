@@ -1,4 +1,16 @@
-# 老金的.gitignore - 这些SB文件不要提交到仓库
+# HookPrompt repository ignore rules
+
+# 本机运行状态和分析产物
+.meta-kim/
+graphify-out/
+
+# 外部代理/工具生成的本地说明，不属于 HookPrompt 产品源文件
+AGENTS.md
+CLAUDE.md
+
+# Claude Code 本机状态/权限配置
+.claude/settings.local.json
+.claude/project-task-state.json
 
 # Hook日志文件（临时文件，不需要提交）
 hook-prompt-optimizer.log

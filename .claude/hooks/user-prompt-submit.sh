@@ -37,8 +37,12 @@ USER_INPUT=$(echo "$USER_INPUT" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 log "用户输入: ${USER_INPUT:0:100}..."
 log "输入长度: ${#USER_INPUT}"
 
+is_prompt_level_slash_command() {
+    [[ "$1" =~ ^/(meta-theory|meta_theory)([[:space:]]|$) ]]
+}
+
 # 过滤：Claude Code 内置命令（以 / 开头）
-if [[ "$USER_INPUT" =~ ^/ ]]; then
+if [[ "$USER_INPUT" =~ ^/ ]] && ! is_prompt_level_slash_command "$USER_INPUT"; then
     log "检测到斜杠命令（Claude Code内置命令），跳过优化"
     echo "{}"
     exit 0

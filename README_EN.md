@@ -1,91 +1,102 @@
 [English](./README_EN.md) | [中文](./README.md)
 
-# Auto Prompt Optimization Hook
-
 <div align="center">
+
+# HookPrompt
+
+**Turn casual requests into executable, verifiable prompts before an Agent starts work**
 
 ![GitHub stars](https://img.shields.io/github/stars/KimYx0207/HookPrompt?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/KimYx0207/HookPrompt?style=social)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Runtime](https://img.shields.io/badge/runtime-Claude%20Code%20%7C%20Codex-111827)
 ![Language](https://img.shields.io/badge/language-JavaScript-orange.svg)
-
-**Role-first + Outcome-contract + Tagged structure → Auto-executing Hook**
 
 </div>
 
----
+## Overview
 
-> Turn role-first prompting, outcome contracts, and tagged structure into an auto-executing Hook.
-> Just type casual phrases — AI automatically translates them into professional prompts.
+HookPrompt is a `UserPromptSubmit` hook for Claude Code, Codex, and similar Agent tools. It rewrites natural-language user input into a structured task brief before the model receives it.
 
----
+It helps with three common failure modes:
+
+- The user gives a fuzzy request, and the Agent does not know the real goal or acceptance criteria.
+- The user gives short feedback such as "this does not work", "error", or "please check", but the actual intent is diagnosis or repair.
+- The task needs scope, success criteria, and a verification plan before execution, otherwise the Agent may appear busy without proving the user goal is done.
+
+By default, HookPrompt asks the model to start its first visible reply with a three-part structure:
+
+```text
+Original input -> Optimized understanding -> Optimized full prompt
+```
+
+The optimized prompt uses role-first framing, outcome contracts, tagged structure, success criteria, and a verification plan.
 
 ## How It Works
 
-By default, the hook sends the full meta template through `additionalContext` so
-the user-facing reply can preserve the complete three-part prompt optimization
-experience (`📝 Original Input`, `🔄 Optimized Understanding`, `✅ Optimized Full
-Prompt`). The original user input is still wrapped in a fenced code block so
-Markdown headings, file paths, and images stay literal. Set
-`HOOKPROMPT_COMPACT_CONTEXT=1` only when you explicitly need the shorter
-backstage contract as an emergency fallback.
+```mermaid
+flowchart LR
+    A["User input"] --> B["UserPromptSubmit hook"]
+    B --> C{"Should optimize?"}
+    C -->|No| D["Return empty object"]
+    C -->|Yes| E["Build structured task brief"]
+    E --> F["Inject additionalContext"]
+    F --> G["Agent executes with clearer context"]
+```
 
-```
-User types: "make a login"
-    ↓
-Hook intercepts
-    ↓
-Applies role-first + outcome-contract optimization
-    ↓
-Outputs structured professional prompt:
-    📝 Original Input: make a login
-    🔄 Optimized Understanding:
-       - Context: Web app, production-grade security
-       - Task: Implement JWT auth + bcrypt encryption
-       - Format: Complete code + tests
-    ✅ Optimized Full Prompt: [detailed professional prompt]
-    ↓
-Claude receives the optimized version
-    ↓
-Claude auto-executes the task
-```
+HookPrompt does not execute the task itself. It clarifies intent, boundaries, output shape, and proof requirements before the Agent starts.
+
+## Core Features
+
+| Feature | Description |
+|---|---|
+| Structured optimization | Turns user input into a Context / Task / Format summary and a complete execution prompt |
+| Outcome contract | Adds goal, scope, success criteria, verification plan, and stop conditions |
+| Smart filtering | Skips confirmations and ordinary built-in commands |
+| Short diagnostic trigger | Still optimizes short repair-oriented input |
+| Prompt-level governance entry | Keeps `/meta-theory ...` in the optimization path |
+| Claude Code support | Provides `.claude/hooks/user-prompt-submit.js` and config examples |
+| Codex support | Provides `.codex/hooks/user-prompt-submit.js` and `hooks.json` |
+| Cross-platform | Node.js works on Windows, macOS, and Linux; Bash is available for macOS/Linux |
+
+## Filtering Rules
+
+| Input type | Optimized? |
+|---|---|
+| Claude Code built-in commands such as `/clear`, `/help`, `/commit` | No |
+| Prompt-level governance entries such as `/meta-theory ...` | Yes |
+| Short diagnostic or repair intent such as "this does not work", "error", "please check" | Yes |
+| Short input without task intent | No |
+| Simple confirmations such as "ok" or "continue" | No |
+| Normal requirement descriptions | Yes |
 
 ## Quick Start
 
-### Method 1: Use in This Project
-1. Open this project directory with Claude Code
-2. Run tests (optional): `node test-hook.js`
-3. Type a normal request, or a short diagnostic phrase such as "this does not work" / "error" / "please check"
-4. Watch the Hook display the optimization process
+### 1. Verify in This Project
 
-### Method 2: Copy to Another Project
+Run from the repository root:
+
+```bash
+node test-hook.js
+```
+
+The test script checks short-input filtering, diagnostic triggering, normal request optimization, and Codex JSON input extraction.
+
+### 2. Copy to a Claude Code Project
+
+Copy `.claude` into the target project root:
+
 ```bash
 cp -r .claude /your/project/root/
 ```
 
-For Codex projects, also copy `.codex`:
+Windows PowerShell:
 
-```bash
-cp -r .codex /your/project/root/
-```
-
-### Method 3: Global Configuration (Recommended)
-
-**Windows:**
 ```powershell
-Copy-Item -Recurse .claude\hooks $HOME\.claude\hooks
-Copy-Item .claude\prompt-optimizer-meta.md $HOME\.claude\
+Copy-Item -Recurse .claude D:\YourProject\
 ```
 
-**Mac/Linux:**
-```bash
-mkdir -p ~/.claude/hooks
-cp .claude/hooks/* ~/.claude/hooks/
-cp .claude/prompt-optimizer-meta.md ~/.claude/
-chmod +x ~/.claude/hooks/*.sh
-```
-
-Then edit `~/.claude/settings.json`:
+The target `.claude/settings.json` should use `UserPromptSubmit`:
 
 ```json
 {
@@ -96,7 +107,7 @@ Then edit `~/.claude/settings.json`:
           {
             "type": "command",
             "command": "node",
-            "args": ["/path/to/.claude/hooks/user-prompt-submit.js"]
+            "args": [".claude/hooks/user-prompt-submit.js"]
           }
         ]
       }
@@ -105,85 +116,212 @@ Then edit `~/.claude/settings.json`:
 }
 ```
 
-> **Important**: Key must be `UserPromptSubmit` (PascalCase), value must be an array with `type: "command"` field.
+### 3. Copy to a Codex Project
 
-## Key Features
+Copy `.codex` into the target project root:
 
-### Cross-Platform Support
-- **Node.js** (recommended): Windows/Mac/Linux
-- **Bash**: Mac/Linux native
+```bash
+cp -r .codex /your/project/root/
+```
 
-### Codex Support
-Codex sends `UserPromptSubmit` input as JSON. The Node.js hook extracts the `prompt` field and returns model-visible context through:
+The Codex adapter extracts the `prompt` field from stdin JSON and returns model-visible context through `hookSpecificOutput.additionalContext`.
+
+## Global Installation
+
+### Claude Code
+
+Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\hooks" | Out-Null
+Copy-Item -Force .claude\hooks\user-prompt-submit.js "$env:USERPROFILE\.claude\hooks\user-prompt-submit.js"
+Copy-Item -Force .claude\prompt-optimizer-meta.md "$env:USERPROFILE\.claude\prompt-optimizer-meta.md"
+```
+
+macOS / Linux:
+
+```bash
+mkdir -p ~/.claude/hooks
+cp .claude/hooks/user-prompt-submit.js ~/.claude/hooks/
+cp .claude/hooks/user-prompt-submit.sh ~/.claude/hooks/
+cp .claude/prompt-optimizer-meta.md ~/.claude/
+chmod +x ~/.claude/hooks/*.sh
+```
+
+Then configure `~/.claude/settings.json`. Absolute paths are more reliable for global installs:
 
 ```json
 {
-  "hookSpecificOutput": {
-    "hookEventName": "UserPromptSubmit",
-    "additionalContext": "..."
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["C:/Users/your-name/.claude/hooks/user-prompt-submit.js"]
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-Do not wrap the optimized prompt as `systemMessage`; in Codex that is a UI/event notice, not the same model context channel.
+### Codex
 
-### Smart Filtering
-| Input Type | Optimized? |
-|-----------|-----------|
-| Built-in commands (`/clear`, `/help`) | ❌ Skip |
-| Short diagnostic / repair intent ("does not work", "error", "please check") | ✅ Optimize |
-| Short input with no task intent | ❌ Skip |
-| Simple replies ("ok", "continue") | ❌ Skip |
-| Normal requirement descriptions | ✅ Optimize |
+Copy `.codex/hooks/user-prompt-submit.js` to your Codex hook directory and configure `UserPromptSubmit` in `hooks.json`. For project-level usage, keep this repository's `.codex/hooks.json`.
 
-### Auto-Execution
-After optimization, Claude automatically executes the task — no second confirmation needed.
+## Configuration
+
+### Full Experience and Compact Mode
+
+The default mode injects the full meta template so the visible reply can preserve:
+
+- Original input
+- Optimized understanding
+- Optimized full prompt
+
+Use compact mode only when you explicitly need shorter backstage context:
+
+```bash
+HOOKPROMPT_COMPACT_CONTEXT=1
+```
+
+### Customize Optimization Rules
+
+Edit `.claude/prompt-optimizer-meta.md` to adjust:
+
+- Task-role selection
+- Goal, scope, and acceptance fields
+- Output format
+- Stop conditions for high-risk operations
+- Examples and self-checks
 
 ## File Structure
 
+```text
+HookPrompt/
+├── .claude/
+│   ├── hooks/
+│   │   ├── user-prompt-submit.js
+│   │   └── user-prompt-submit.sh
+│   ├── prompt-optimizer-meta.md
+│   ├── settings.json
+│   ├── settings.json.example-windows
+│   └── settings.json.example-unix
+├── .codex/
+│   ├── hooks/
+│   │   └── user-prompt-submit.js
+│   └── hooks.json
+├── docs/
+│   └── images/
+│       ├── contact-qr.png
+│       ├── wechat-pay.jpg
+│       └── alipay.jpg
+├── CHANGELOG.md
+├── LICENSE
+├── README.md
+├── README_EN.md
+└── test-hook.js
 ```
-.claude/
-├── hooks/
-│   ├── user-prompt-submit.js    ← Node.js version (recommended)
-│   └── user-prompt-submit.sh    ← Bash version (Mac/Linux)
-├── prompt-optimizer-meta.md     ← Optimization prompt template
-├── settings.json                ← Hook configuration
-├── settings.json.example-windows
-└── settings.json.example-unix
-.codex/
-├── hooks/
-│   └── user-prompt-submit.js    ← Codex adapter
-└── hooks.json                   ← Codex Hook configuration
-test-hook.js                     ← Test tool
+
+## Testing
+
+Run:
+
+```bash
+node test-hook.js
 ```
+
+Run the tests after changing hook logic, filtering rules, Codex adaptation, or the prompt template.
+
+Passing tests prove local script behavior. To verify real product behavior, trigger the hook in Claude Code or Codex.
 
 ## Troubleshooting
 
 ### Hook Not Executing
-1. Verify `UserPromptSubmit` key in settings.json (PascalCase)
-2. Run `node test-hook.js`
-3. Check Node.js: `node -v`
-4. Restart Claude Code after config changes
-5. Check logs: Windows `%TEMP%\hook-prompt-optimizer.log` / Unix `/tmp/hook-prompt-optimizer.log`
 
-### Claude Code 2.1.23+ Breaking Changes
-The hook protocol changed in v2.1.23. All context fields must be wrapped in `hookSpecificOutput`:
+Check:
 
-```javascript
-// ✅ Correct (new)
-return { hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: "..." } };
-// ❌ Wrong (old)
-return { hookEventName: "UserPromptSubmit", hookSpecificOutput: { ... } };
+1. The settings key must be `UserPromptSubmit`, not `user-prompt-submit`.
+2. The hook value must be an array.
+3. The command entry must include `type: "command"`.
+4. `node -v` must work.
+5. Restart Claude Code or reopen the relevant session after configuration changes.
+
+### Windows Cannot Find the Script
+
+Use absolute paths with `/` or escaped `\\`:
+
+```json
+"args": ["C:/Users/your-name/.claude/hooks/user-prompt-submit.js"]
 ```
 
-## Core Idea
+### Optimization Does Not Appear
 
-**Turn role-first prompting, outcome contracts, tagged structure, and verification plans into an automatic workflow.**
+Possible reasons:
 
-You don't need to hand-write goals, scope, acceptance criteria, and verification plans every time. Short task feedback is optimized; pure confirmations are skipped.
+- The input was classified as a confirmation or ordinary command.
+- The hook returned `{}` to skip optimization.
+- The host tool does not render `additionalContext` as visible output.
 
-**The Hook does it all for you.**
+Try a clearer task input:
 
----
+```text
+Build a login feature with tests and error handling
+```
 
-**Have fun! 🚀**
+### Logs
+
+Windows:
+
+```powershell
+Get-Content "$env:TEMP\hook-prompt-optimizer.log"
+```
+
+macOS / Linux:
+
+```bash
+cat /tmp/hook-prompt-optimizer.log
+```
+
+## Changelog
+
+Release history is maintained in [CHANGELOG.md](./CHANGELOG.md). The changelog is written in Chinese.
+
+## Contact
+
+![Contact QR code](docs/images/contact-qr.png)
+
+GitHub <a href="https://github.com/KimYx0207">KimYx0207</a> |
+X <a href="https://x.com/KimYx0207">@KimYx0207</a> |
+Website <a href="https://www.aiking.dev/">aiking.dev</a> |
+WeChat Official Account: <strong>老金带你玩AI</strong>
+
+Feishu knowledge base:
+<a href="https://my.feishu.cn/wiki/OhQ8wqntFihcI1kWVDlcNdpznFf">long-term update entry</a>
+
+### Buy Me a Coffee
+
+If HookPrompt helps you, you can support ongoing maintenance.
+
+<table align="center">
+<tr><th>WeChat Pay</th><th>Alipay</th></tr>
+<tr>
+<td align="center"><img src="docs/images/wechat-pay.jpg" width="260" alt="WeChat payment QR code"></td>
+<td align="center"><img src="docs/images/alipay.jpg" width="260" alt="Alipay QR code"></td>
+</tr>
+</table>
+
+## Contributing
+
+Issues and PRs are welcome. Please keep three boundaries:
+
+1. Do not treat longer prompts as the quality goal.
+2. Do not treat command success as user-goal completion.
+3. Do not use externally hosted contact or payment QR links when repository-local assets are available.
+
+## License
+
+MIT License. See [LICENSE](./LICENSE).

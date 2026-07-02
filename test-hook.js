@@ -74,6 +74,17 @@ const testCases = [
         expectOptimization: false
     },
     {
+        name: '普通斜杠命令（应跳过优化）',
+        input: '/help',
+        expectOptimization: false
+    },
+    {
+        name: 'Meta_Kim治理斜杠入口（应触发优化）',
+        input: '/meta-theory 帮我检查一下本项目看看有什么问题没有',
+        expectOptimization: true,
+        expectContains: '/meta-theory 帮我检查一下本项目看看有什么问题没有'
+    },
+    {
         name: 'Codex委托普通输入（应提取input并触发优化）',
         input: JSON.stringify({
             hook_event_name: 'UserPromptSubmit',

@@ -1,580 +1,327 @@
 [中文](./README.md) | [English](./README_EN.md)
 
-# 提示词自动优化 Hook
-
 <div align="center">
+
+# HookPrompt
+
+**把随口说出的需求，自动整理成可执行、可验收的专业提示词**
 
 ![GitHub stars](https://img.shields.io/github/stars/KimYx0207/HookPrompt?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/KimYx0207/HookPrompt?style=social)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Runtime](https://img.shields.io/badge/runtime-Claude%20Code%20%7C%20Codex-111827)
 ![Language](https://img.shields.io/badge/language-JavaScript-orange.svg)
 
-**Role-first + Outcome-contract + Tagged structure → 自动执行的 Hook**
-
 </div>
 
-> 🔗 **GitHub仓库**：[https://github.com/KimYx0207/HookPrompt](https://github.com/KimYx0207/HookPrompt)
+## 简介
 
-> 老金的开源知识库，实时更新群二维码：https://my.feishu.cn/wiki/OhQ8wqntFihcI1kWVDlcNdpznFf
+HookPrompt 是一个面向 Claude Code、Codex 等 Agent 工具的 `UserPromptSubmit` Hook。它会在用户输入进入模型前，把自然语言请求整理成更适合执行的结构化任务简报。
 
----
+它重点解决三类问题：
 
-## 📞 联系方式
+- 用户只说了模糊需求，Agent 不知道真实目标和验收标准。
+- 用户反馈很短，例如“这个不行”“报错了”“帮我看看”，但其实需要诊断或修复。
+- 任务需要清晰边界、成功标准和验证计划，否则容易变成“看起来执行了，但没有真的完成”。
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/KimYx0207/Claude-Code-x-OpenClaw-Guide-Zh/main/images/二维码基础款.png" alt="联系方式" width="600"/>
-  <p><strong>获取更多AI资讯和技术支持</strong></p>
-  <p>
-    🌐 <a href="https://www.aiking.dev/">aiking.dev</a>
-  </p>
-</div>
+HookPrompt 默认要求模型在首条回复中展示三段式结果：
 
----
-
-> 把 role-first、结果契约和结构化提示词变成自动执行的 Hook
-> 你随便说两句大白话，AI自动翻译成专业提示词
-
----
-
-## 📋 更新日志
-
-### v1.2.9 (2026-06-13) - **升级：Outcome-contract + 短诊断输入触发** 🎯
-- ✅ **升级提示词模板**：从 CTF / 5任务主叙事升级为 role-first、outcome-contract、tagged structure、success criteria 和 verification plan
-- ✅ **修复短诊断输入**：`这个不行`、`报错了`、`帮我看看` 这类短但有任务意图的输入现在会触发优化
-- ✅ **保留简单回复过滤**：`好的`、`继续`、`ok` 等纯确认回复仍然跳过优化
-- ✅ **同步 Claude / Codex 测试**：新增短诊断、短错误反馈、短检查请求回归测试
-
-### v1.2.8 (2026-06-11) - **修复：默认完整体验，compact 仅显式应急** 🧩
-- ✅ **默认完整模板注入**：默认把完整 meta 模板放进 `additionalContext`，保留用户可见的完整提示词优化体验
-- ✅ **安全包裹原始输入**：继续把用户原文放进 fenced code block，避免 `#`、`##`、图片路径等被渲染成标题
-- ✅ **保留应急短契约**：只有设置 `HOOKPROMPT_COMPACT_CONTEXT=1` 时才使用短后台展示契约
-- ✅ **覆盖 Claude Code / Codex / Cursor**：共享 Node/Bash Hook 逻辑，Codex/Cursor adapter 继续复用同一契约
-
-### v1.2.7 (2026-06-11) - **修复：短后台契约，保留前台完整体验** 🧩
-- ⚠️ 已被 v1.2.8 调整：短后台契约不再是默认路径，避免用户误以为 HookPrompt 被压缩或折叠
-- ✅ **保留用户可见三段式**：前台仍要求完整展示 `📝 原始输入 / 🔄 优化后的理解 / ✅ 优化后的完整提示词`
-
-### v1.2.6 (2026-06-10) - **新增：Codex UserPromptSubmit 正式适配** 🔧
-- ✅ **新增 Codex 项目级入口**：提供 `.codex/hooks.json` 和 `.codex/hooks/user-prompt-submit.js`
-- ✅ **修复 Codex 上下文注入语义**：保持 `hookSpecificOutput.additionalContext`，避免被错误包装成只显示给 UI 的 `systemMessage`
-- ✅ **补充 Codex JSON 输入测试**：验证 hook 会提取 `prompt` 字段，不会把整包事件 JSON 当成用户需求优化
-
-### v1.2.5 (2026-01-30) - **强化：强制格式输出** 🔒
-- ✅ **新增强制格式指令**：添加 `<MANDATORY_FORMAT_INSTRUCTION>` 确保回复始终以固定格式开头
-- ✅ **优化优先级**：格式指令放在 additionalContext 最前面，优先级最高
-- ✅ **明确格式铁律**：回复必须以 `📝 **原始输入**：` 开头，否则视为Hook失效
-- ✅ **用户体验提升**：用户可通过固定格式确认Hook正在工作
-
-### v1.2.4 (2026-01-29) - **验证：功能测试通过** ✅
-- ✅ **全量测试通过**：`test-hook.js` 4/4 测试用例全部通过，验证了过滤逻辑和优化触发机制
-- ✅ **稳定性验证**：确认 Hook 在 Windows 环境下运行稳定，JSON 解析逻辑健壮
-- ✅ **环境就绪**：项目结构清理完成，移除无关残留文件
-
-### v1.2.3 (2026-01-28) - **修复：完善 JSON 输入解析** 🔥
-- ✅ **修复核心问题**：添加完整的 JSON 输入解析逻辑，正确提取 `messages` 数组中的用户消息
-- ✅ **修复 Hook 错误**：解决 UserPromptSubmit hook 无法正确处理 Claude Code API 输入的问题
-- ✅ **增强兼容性**：同时支持 JSON 格式（`messages` 数组、`prompt` 字段）和纯文本格式
-- ✅ **改进日志**：添加详细的解析日志，包括原始输入和提取后的用户消息
-
-### v1.2.2 (2026-01-27) - **修复：Hook API 输入解析** 🔥
-- ✅ **修复关键问题**：正确解析 Claude Code Hook API 的 JSON 输入格式
-- ✅ **修复命令识别**：现在能正确识别并跳过内置命令（如 `/clear`、`/help` 等）
-- ✅ **改进兼容性**：支持 `messages` 数组格式和纯文本格式的输入
-- ✅ **增强日志**：添加 JSON 解析日志，便于调试
-
-### v1.2.1 (2026-01-27) - **新增：内置命令过滤** 🎯
-- ✅ **新增内置命令过滤**：自动识别并跳过 Claude Code 内置命令（如 `/clear`、`/help`、`/commit` 等）
-- ✅ **修复命令冲突**：解决 `/clear` 被误解为项目清理操作的问题
-- ✅ **改进用户体验**：确保所有斜杠命令能够正确触发，不被 Hook 拦截优化
-
-### v1.2.0 (2026-01-11) - **重要更新：修复Hook触发问题** 🔥
-- ✅ **修复settings.json配置格式**：使用正确的`UserPromptSubmit`键名（PascalCase）和数组结构
-- ✅ **修复Hook输出格式**：符合Claude Code官方Hook API，使用JSON格式输出
-- ✅ **添加跨平台配置示例**：提供Windows和Unix的配置模板
-- ✅ **添加测试工具**：`test-hook.js`用于本地测试hook功能
-- ✅ **完善文档**：更新安装和故障排查指南
-
-### v1.1.0 (2025-12-09)
-- ✅ **新增跨平台支持**：添加Node.js版本，Windows/Mac/Linux全平台支持
-- ✅ **修复输出格式**：去掉干扰Claude理解的分隔符
-- ✅ **修复日志路径**：使用跨平台临时目录
-- ✅ **修复路径问题**：支持`$HOME`和项目目录双重查找
-- ✅ **增强错误处理**：模板文件缺失时有日志提示
-- ✅ **优化模板**：去掉硬编码技术栈，改为智能推断
-- ✅ **统一文档**：代码和文档阈值说明一致（10字符）
-
----
-
-## 🎯 工作流程
-
-```
-用户发消息："做个登录"
-    ↓
-Hook拦截
-    ↓
-调用 role-first + outcome-contract 优化逻辑
-    ↓
-输出优化后的专业提示词：
-    📝 原始输入：做个登录
-    🔄 优化后的理解：
-       - Context: Web应用，生产级安全
-       - Task: 实现JWT认证+bcrypt加密
-       - Format: 完整代码+测试
-    ✅ 优化后的完整提示词：[详细的专业提示词]
-    ↓
-Claude收到优化后的版本
-    ↓
-Claude自动执行任务
+```text
+原始输入 -> 优化后的理解 -> 优化后的完整提示词
 ```
 
----
+优化后的完整提示词会使用 role-first、outcome-contract、tagged structure、success criteria 和 verification plan，让后续执行更清楚、更可控。
 
-## 📦 文件结构
+## 工作方式
 
-```
-提示词Hook/
-  ├── .claude/
-  │   ├── hooks/
-  │   │   ├── user-prompt-submit.js        ← Node.js版（推荐，跨平台）
-  │   │   └── user-prompt-submit.sh        ← Bash版（Mac/Linux）
-  │   ├── prompt-optimizer-meta.md         ← 优化提示词模板
-  │   ├── settings.json                    ← Hook配置（当前项目）
-  │   ├── settings.json.example-windows    ← Windows配置示例
-  │   └── settings.json.example-unix       ← Mac/Linux配置示例
-  ├── .codex/
-  │   ├── hooks/
-  │   │   └── user-prompt-submit.js        ← Codex适配入口
-  │   └── hooks.json                       ← Codex Hook配置
-  └── test-hook.js                         ← 测试工具（验证hook功能）
+```mermaid
+flowchart LR
+    A["用户输入"] --> B["UserPromptSubmit Hook"]
+    B --> C{"是否需要优化？"}
+    C -->|否| D["返回空结果，原输入继续"]
+    C -->|是| E["生成结构化任务简报"]
+    E --> F["通过 additionalContext 注入模型上下文"]
+    F --> G["Agent 按优化后的任务执行"]
 ```
 
----
+HookPrompt 不会替代模型执行任务。它做的是在任务开始前把意图、边界、输出格式和验证标准说清楚。
 
-## 🚀 快速开始
+## 核心能力
 
-### 方法1：在这个项目中使用
+| 能力 | 说明 |
+|---|---|
+| 结构化优化 | 将普通输入整理成 Context / Task / Format 摘要和完整执行提示词 |
+| 结果契约 | 明确 goal、scope、success criteria、verification plan 和 stop conditions |
+| 智能过滤 | 跳过纯确认、普通内置命令等无需优化的输入 |
+| 短诊断触发 | 对“这个不行”“报错了”“帮我看看”等短输入仍会触发优化 |
+| Prompt 级治理入口 | `/meta-theory ...` 等治理类入口会继续进入优化流程 |
+| Claude Code 支持 | 提供 `.claude/hooks/user-prompt-submit.js` 和配置示例 |
+| Codex 支持 | 提供 `.codex/hooks/user-prompt-submit.js` 和 `hooks.json` |
+| 跨平台 | Node.js 版本可在 Windows、macOS、Linux 使用；Bash 版本适合 macOS/Linux |
 
-1. 用Claude Code打开这个项目目录
-2. **首次使用前运行测试**：`node test-hook.js`（可选，验证功能）
-3. 随便说点什么测试：普通需求，或“这个不行 / 报错了 / 帮我看看”这类短诊断输入
-4. 看Hook是否显示优化过程
+## 输入过滤规则
 
-### 方法2：复制到其他项目
-
-```bash
-# 复制整个.claude目录到你的项目
-cp -r .claude /你的项目根目录/
-```
-
-如果你的项目使用 Codex，也复制 `.codex`：
-
-```bash
-cp -r .codex /你的项目根目录/
-```
-
-**重要**：确保settings.json使用正确的格式（见下方）
-
-### 方法3：全局配置（推荐）
-
-**Windows:**
-```powershell
-# 复制到全局配置目录
-Copy-Item -Recurse .claude\hooks $HOME\.claude\hooks
-Copy-Item .claude\prompt-optimizer-meta.md $HOME\.claude\
-```
-
-**Mac/Linux:**
-```bash
-# 复制到全局配置目录
-mkdir -p ~/.claude/hooks
-cp .claude/hooks/* ~/.claude/hooks/
-cp .claude/prompt-optimizer-meta.md ~/.claude/
-chmod +x ~/.claude/hooks/*.sh
-```
-
-然后编辑 `~/.claude/settings.json`（如果不存在就创建）：
-
-**Windows用户：**
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["C:/Users/你的用户名/.claude/hooks/user-prompt-submit.js"]
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-**Mac/Linux用户（Node.js版）：**
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["~/.claude/hooks/user-prompt-submit.js"]
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-**Mac/Linux用户（Bash版）：**
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash",
-            "args": ["~/.claude/hooks/user-prompt-submit.sh"]
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-> ⚠️ **重要**：
-> - 键名必须是 `UserPromptSubmit`（PascalCase），不是 `user-prompt-submit`
-> - 值必须是数组，包含hooks对象
-> - 必须包含 `type: "command"` 字段
-
----
-
-## ✨ 核心特性
-
-### 1. 跨平台支持
-- **Node.js版**（推荐）：Windows/Mac/Linux全平台支持
-- **Bash版**：Mac/Linux原生支持
-
-### 2. 智能过滤
 | 输入类型 | 是否优化 |
-|---------|---------|
-| Claude Code内置命令（`/clear`、`/help`等） | ❌ 不优化 |
-| 短诊断 / 修复意图（`这个不行`、`报错了`、`帮我看看`） | ✅ 优化 |
-| 无任务含义的短输入 | ❌ 不优化 |
-| 简单回复（"好的"、"继续"） | ❌ 不优化 |
-| 正常需求描述 | ✅ 优化 |
+|---|---|
+| Claude Code 内置命令，例如 `/clear`、`/help`、`/commit` | 不优化 |
+| Prompt 级治理入口，例如 `/meta-theory ...` | 优化 |
+| 短诊断 / 修复意图，例如“这个不行”“报错了”“帮我看看” | 优化 |
+| 无任务含义的短输入 | 不优化 |
+| 简单回复，例如“好的”“继续”“ok” | 不优化 |
+| 正常需求描述 | 优化 |
 
-### 3. 自动执行
-优化完成后，Claude会自动执行任务，不需要二次确认。
+## 快速开始
 
-### 4. Codex 兼容
-Codex 的 `UserPromptSubmit` 会把 hook 的标准输入包装成 JSON。Node.js 版本会提取其中的 `prompt` 字段，并输出：
+### 1. 本项目内验证
 
-```json
-{
-  "hookSpecificOutput": {
-    "hookEventName": "UserPromptSubmit",
-    "additionalContext": "..."
-  }
-}
-```
-
-不要把优化内容重新包装成 `systemMessage`。`systemMessage` 主要用于 Codex UI/事件提示，不等同于给模型追加开发者上下文。
-
----
-
-## 🧪 测试效果
-
-### 测试1：模糊需求
-
-**你说**：
-```
-做个登录功能
-```
-
-**Hook优化后**：
-```markdown
-📝 **原始输入**：做个登录功能
-
-🔄 **优化后的理解**：
-- **Context（上下文）**：Web应用，资深全栈工程师，生产级安全要求
-- **Task（任务）**：实现完整的用户登录功能
-- **Format（格式）**：完整代码文件 + 测试用例
-
-✅ **优化后的完整提示词**：
-[详细的专业提示词...]
-```
-
-### 测试2：简单问答（不优化）
-
-**你说**：
-```
-这是什么？
-```
-
-**输出**：原样输出，不浪费时间优化。
-
----
-
-## 🔧 配置选项
-
-### 查看配置示例
-
-项目中提供了两个配置示例文件：
-- `.claude/settings.json.example-windows` - Windows平台配置
-- `.claude/settings.json.example-unix` - Mac/Linux平台配置
-
-### 启用/禁用Hook
-
-**临时禁用**：重命名settings.json为settings.json.bak
-
-**切换Bash版本（Mac/Linux）**：
-修改`.claude/settings.json`中的command和args：
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash",
-            "args": [".claude/hooks/user-prompt-submit.sh"]
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### 自定义优化规则
-
-编辑 `.claude/prompt-optimizer-meta.md`：
-- 修改 role-first / outcome-contract / tagged structure 应用方式
-- 调整输出格式
-- 添加自定义检查项
-
----
-
-## 🧪 测试工具
-
-使用提供的测试脚本验证hook功能：
+在项目根目录运行：
 
 ```bash
 node test-hook.js
 ```
 
-测试脚本会：
-- ✅ 测试简短回复（应跳过优化）
-- ✅ 测试无任务短输入（应跳过优化）
-- ✅ 测试短诊断 / 错误 / 检查请求（应触发优化）
-- ✅ 测试正常长文本（应触发优化）
-- ✅ 测试复杂需求（应触发优化）
-- ✅ 测试 Codex JSON 输入（应只提取 `prompt` 字段）
-- ✅ 显示详细的测试结果和日志
+测试脚本会验证短输入过滤、诊断触发、正常需求优化和 Codex JSON 输入提取。
 
----
+### 2. 复制到 Claude Code 项目
 
-## 🐛 故障排查
+把 `.claude` 目录复制到目标项目根目录：
 
-### 💡 技术复盘：适配 Claude Code 2.1.23+ 升级 (Breaking Changes)
-
-> ⚠️ **重要提示**：本次更新是为了适配 Claude Code **v2.1.23** 引入的 Hook 协议变更。旧版 Hook 脚本在新版 CLI 中会失效，表现为无响应或报错。
-
-如果您遇到 Hook 无法工作的问题，可能是由于 Claude Code 版本更新导致的协议不兼容。以下是关键的修复总结：
-
-#### 1. JSON 协议结构变更
-旧版本协议将事件名暴露在外层，Claude Code 2.1.23+ 强制要求所有上下文相关字段必须包裹在 `hookSpecificOutput` 中。
-
-**❌ 错误结构（旧版）：**
-```javascript
-return {
-    hookEventName: "UserPromptSubmit", // ❌ Claude Code 2.1.23+ 会忽略此字段
-    hookSpecificOutput: { ... }
-};
-```
-
-**✅ 正确结构（新版）：**
-```javascript
-return {
-    hookSpecificOutput: {
-        hookEventName: "UserPromptSubmit", // ✅ 必须包裹在内部
-        additionalContext: "..."
-    }
-};
-```
-
-#### 2. Windows 路径配置的最佳实践
-在 Windows 环境下，使用相对路径可能导致 Hook 脚本无法被找到。
-
-**❌ 风险配置（相对路径）：**
-```json
-"args": [".claude/hooks/user-prompt-submit.js"]
-```
-
-**✅ 推荐配置（绝对路径）：**
-建议使用绝对路径，或确保 `cwd` 上下文正确。
-```json
-"command": "node",
-"args": ["C:/Absolute/Path/To/.claude/hooks/user-prompt-submit.js"]
-```
-
-### 问题1：Hook没有执行
-
-**症状**：输入提示词后没有看到任何优化输出
-
-**检查步骤**：
-1. **验证配置格式**：
-   - 确认 `.claude/settings.json` 中键名是 `UserPromptSubmit`（不是 `user-prompt-submit`）
-   - 确认值是数组结构，包含 `hooks` 对象
-   - 确认包含 `type: "command"` 字段
-
-2. **运行测试脚本**：
-   ```bash
-   node test-hook.js
-   ```
-   如果测试失败，说明hook脚本本身有问题
-
-3. **检查Node.js**：
-   ```bash
-   node -v
-   ```
-   确保已安装Node.js
-
-4. **重启Claude Code**：配置更改后需要重启
-
-5. **查看错误日志**：
-   - Windows: `%TEMP%\hook-prompt-optimizer.log`
-   - Mac/Linux: `/tmp/hook-prompt-optimizer.log`
-
-### 问题2：显示"Invalid key in record"错误
-
-**原因**：settings.json配置格式错误
-
-**解决方法**：
-1. 检查键名是否为 `UserPromptSubmit`（PascalCase）
-2. 检查是否使用了数组结构
-3. 参考项目中的示例文件：
-   - `.claude/settings.json.example-windows`
-   - `.claude/settings.json.example-unix`
-
-### 问题3：没有显示优化过程
-
-**可能原因**：
-- 你的输入太短且没有诊断、修复、优化或检查意图
-- 输入是简单回复（"好的"、"继续"等）
-- Hook工作正常，但返回了空响应
-
-**检查方法**：
-1. 运行测试脚本：`node test-hook.js`
-2. 查看日志文件，确认hook是否被触发
-3. 尝试输入较长的需求描述
-
-### 问题4：Windows提示找不到bash
-
-**解决方法**：使用Node.js版本（推荐）
-- 确保settings.json中配置的是 `node` 命令
-- 参考 `.claude/settings.json.example-windows`
-
-### 问题5：Mac/Linux权限错误
-
-**解决方法**：
 ```bash
-chmod +x .claude/hooks/*.sh
+cp -r .claude /your/project/root/
 ```
 
-### 通用调试步骤
+Windows PowerShell：
 
-1. **最小化测试**：
-   ```bash
-   # 直接运行hook脚本测试
-   echo "帮我写一个登录功能" | node .claude/hooks/user-prompt-submit.js
-   ```
-   应该输出JSON格式的响应
+```powershell
+Copy-Item -Recurse .claude D:\YourProject\
+```
 
-2. **查看日志**：
-   ```bash
-   # Windows
-   type %TEMP%\hook-prompt-optimizer.log
+目标项目中的 `.claude/settings.json` 应使用 `UserPromptSubmit`：
 
-   # Mac/Linux
-   cat /tmp/hook-prompt-optimizer.log
-   ```
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [".claude/hooks/user-prompt-submit.js"]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
-3. **验证JSON格式**：
-   hook输出必须是有效的JSON，格式如下：
-   ```json
-   {
-     "hookSpecificOutput": {
-       "additionalContext": "..."
-     }
-   }
-   ```
-   或空对象 `{}`
+### 3. 复制到 Codex 项目
 
+把 `.codex` 目录复制到目标项目根目录：
 
+```bash
+cp -r .codex /your/project/root/
+```
 
----
+Codex 入口会从标准输入 JSON 中提取 `prompt` 字段，并通过 `hookSpecificOutput.additionalContext` 返回模型可见上下文。
 
-## 📚 核心文件说明
+## 全局安装
 
-### 1. `user-prompt-submit.js` ⭐⭐⭐
-Hook的核心脚本（Node.js版）：
-- 跨平台支持
-- 拦截用户输入
-- 智能过滤简单回复，同时保留短诊断输入触发
-- 调用优化逻辑
-- 返回优化后的提示词
+### Claude Code
 
-### 2. `user-prompt-submit.sh`
-Hook的Bash版本（Mac/Linux）：
-- 功能同上
-- 需要Bash环境
+Windows PowerShell：
 
-### 3. `prompt-optimizer-meta.md` ⭐⭐⭐
-优化提示词模板：
-- role-first 提示词架构
-- outcome-contract 与 tagged structure
-- success criteria / verification plan
-- 输出格式规范
-- 示例参考
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\hooks" | Out-Null
+Copy-Item -Force .claude\hooks\user-prompt-submit.js "$env:USERPROFILE\.claude\hooks\user-prompt-submit.js"
+Copy-Item -Force .claude\prompt-optimizer-meta.md "$env:USERPROFILE\.claude\prompt-optimizer-meta.md"
+```
 
-### 4. `settings.json`
-Hook配置文件：
-- 启用/禁用Hook
-- 指定Hook脚本路径
+macOS / Linux：
 
----
+```bash
+mkdir -p ~/.claude/hooks
+cp .claude/hooks/user-prompt-submit.js ~/.claude/hooks/
+cp .claude/hooks/user-prompt-submit.sh ~/.claude/hooks/
+cp .claude/prompt-optimizer-meta.md ~/.claude/
+chmod +x ~/.claude/hooks/*.sh
+```
 
-## 💡 核心思想
+然后在 `~/.claude/settings.json` 中配置绝对路径更稳：
 
-**把 role-first、结果契约、结构化标签和验证计划，变成自动执行的流程。**
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["C:/Users/your-name/.claude/hooks/user-prompt-submit.js"]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
-你不用记住所有规则。
+### Codex
 
-你不用每次都手写目标、范围、验收和验证计划。
+把 `.codex/hooks/user-prompt-submit.js` 复制到你的 Codex hook 目录，并在对应 `hooks.json` 中配置 `UserPromptSubmit`。项目级使用时，直接保留本仓库的 `.codex/hooks.json` 即可。
 
-你不用纠结短句到底要不要优化：有任务意图就触发，纯确认就跳过。
+## 配置选项
 
-**Hook帮你全干了。**
+### 完整体验与紧凑模式
 
----
+默认模式会注入完整 meta 模板，保证用户可见回复包含完整三段式：
 
-## 🎉 完成！
+- 原始输入
+- 优化后的理解
+- 优化后的完整提示词
 
-现在你可以：
-- 随便说话，Hook自动优化
-- 看到完整的优化过程
-- 享受高质量的AI对话
+只有在明确需要更短后台上下文时，才设置：
 
-**Have fun! 🚀**
+```bash
+HOOKPROMPT_COMPACT_CONTEXT=1
+```
+
+### 自定义优化规则
+
+编辑 `.claude/prompt-optimizer-meta.md` 可以调整：
+
+- 任务角色判断方式
+- 目标、范围和验收标准字段
+- 输出格式
+- 高风险操作的暂停条件
+- 示例和自查清单
+
+## 文件结构
+
+```text
+HookPrompt/
+├── .claude/
+│   ├── hooks/
+│   │   ├── user-prompt-submit.js
+│   │   └── user-prompt-submit.sh
+│   ├── prompt-optimizer-meta.md
+│   ├── settings.json
+│   ├── settings.json.example-windows
+│   └── settings.json.example-unix
+├── .codex/
+│   ├── hooks/
+│   │   └── user-prompt-submit.js
+│   └── hooks.json
+├── docs/
+│   └── images/
+│       ├── contact-qr.png
+│       ├── wechat-pay.jpg
+│       └── alipay.jpg
+├── CHANGELOG.md
+├── LICENSE
+├── README.md
+├── README_EN.md
+└── test-hook.js
+```
+
+## 测试
+
+运行：
+
+```bash
+node test-hook.js
+```
+
+建议在修改 Hook 逻辑、过滤规则、Codex 适配或提示词模板后都运行一次。
+
+测试通过只代表本地脚本行为符合预期；真实工具内是否展示优化结果，还需要在 Claude Code 或 Codex 会话中实际触发一次确认。
+
+## 故障排查
+
+### Hook 没有执行
+
+优先检查：
+
+1. `settings.json` 的键名必须是 `UserPromptSubmit`，不是 `user-prompt-submit`。
+2. `hooks` 值必须是数组结构。
+3. 命令里必须包含 `type: "command"`。
+4. 本机必须能运行 `node -v`。
+5. 修改配置后需要重启 Claude Code 或重新打开相关会话。
+
+### Windows 找不到脚本
+
+Windows 下建议使用绝对路径，并使用 `/` 或转义后的 `\\`：
+
+```json
+"args": ["C:/Users/your-name/.claude/hooks/user-prompt-submit.js"]
+```
+
+### 没有显示优化过程
+
+可能原因：
+
+- 输入被识别为纯确认或普通命令。
+- Hook 返回了空对象 `{}`，表示主动跳过。
+- 工具侧没有把 `additionalContext` 展示为可见回复。
+
+可以用更明确的任务输入测试，例如：
+
+```text
+帮我做一个登录功能，要求有测试和错误处理
+```
+
+### 查看日志
+
+Windows：
+
+```powershell
+Get-Content "$env:TEMP\hook-prompt-optimizer.log"
+```
+
+macOS / Linux：
+
+```bash
+cat /tmp/hook-prompt-optimizer.log
+```
+
+## 变更记录
+
+版本历史已迁移到 [CHANGELOG.md](./CHANGELOG.md)。
+
+## 联系方式
+
+![联系二维码](docs/images/contact-qr.png)
+
+GitHub <a href="https://github.com/KimYx0207">KimYx0207</a> |
+X <a href="https://x.com/KimYx0207">@KimYx0207</a> |
+官网 <a href="https://www.aiking.dev/">aiking.dev</a> |
+微信公众号：<strong>老金带你玩AI</strong>
+
+飞书知识库：
+<a href="https://my.feishu.cn/wiki/OhQ8wqntFihcI1kWVDlcNdpznFf">长期更新入口</a>
+
+### 请老金喝杯咖啡
+
+如果 HookPrompt 对你有帮助，欢迎请我喝杯咖啡，算是对持续维护的支持。
+
+<table align="center">
+<tr><th>微信支付</th><th>支付宝</th></tr>
+<tr>
+<td align="center"><img src="docs/images/wechat-pay.jpg" width="260" alt="微信收款码"></td>
+<td align="center"><img src="docs/images/alipay.jpg" width="260" alt="支付宝收款码"></td>
+</tr>
+</table>
+
+## 贡献
+
+欢迎提交 Issue 或 PR。修改时请优先保持三条边界：
+
+1. 不把“提示词写长”当成质量目标。
+2. 不把命令通过当成用户目标完成。
+3. 不把联系方式、二维码、付款码写成外部不可控链接。
+
+## License
+
+MIT License. See [LICENSE](./LICENSE).
