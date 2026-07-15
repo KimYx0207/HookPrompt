@@ -14,6 +14,8 @@
 
 </div>
 
+> This repository has been merged into [Kim Service](https://github.com/KimYx0207/Kim_Service) and no longer publishes standalone releases. Please use Kim Service for new versions, installation instructions, and release notes.
+
 ## Overview
 
 HookPrompt is a `UserPromptSubmit` hook for Claude Code, Codex, and similar Agent tools. It rewrites natural-language user input into a structured task brief before the model receives it.

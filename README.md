@@ -14,6 +14,8 @@
 
 </div>
 
+> 因合并关系，本仓库已迁入 [Kim Service](https://github.com/KimYx0207/Kim_Service) 合集，不再单独发布新版本。请前往 Kim Service 获取新版本、安装说明和更新记录。
+
 ## 简介
 
 HookPrompt 是一个面向 Claude Code、Codex 等 Agent 工具的 `UserPromptSubmit` Hook。它会在用户输入进入模型前，把自然语言请求整理成更适合执行的结构化任务简报。
