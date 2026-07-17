@@ -260,6 +260,28 @@ Use absolute paths with `/` or escaped `\\`:
 "args": ["C:/Users/your-name/.claude/hooks/user-prompt-submit.js"]
 ```
 
+### The error mentions `PreToolUse:Bash` and `graphify.EXE`
+
+This is not a HookPrompt `UserPromptSubmit` failure and is unrelated to the Node.js version. An error such as:
+
+```text
+/usr/bin/bash: C:Users...Scriptsgraphify.EXE: command not found
+```
+
+means the project's `.codex/hooks.json` passed an unquoted Windows absolute path to Bash, which treated the backslashes as escape characters. Do not remove HookPrompt or downgrade Node.js. Open `.codex/hooks.json` in the failing project and use a Graphify command that can be resolved from `PATH`:
+
+```json
+"command": "graphify hook-check"
+```
+
+If an absolute path is required, use forward slashes and quote the executable:
+
+```json
+"command": "\"C:/Users/your-name/AppData/Local/Programs/Python/Python311/Scripts/graphify.exe\" hook-check"
+```
+
+Reopen the session and retry the original Bash command. Continue troubleshooting HookPrompt only when the error explicitly identifies `UserPromptSubmit` or `user-prompt-submit.js`.
+
 ### Optimization Does Not Appear
 
 Possible reasons:

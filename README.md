@@ -260,6 +260,28 @@ Windows 下建议使用绝对路径，并使用 `/` 或转义后的 `\\`：
 "args": ["C:/Users/your-name/.claude/hooks/user-prompt-submit.js"]
 ```
 
+### 报错提到 `PreToolUse:Bash` 和 `graphify.EXE`
+
+这不是 HookPrompt 的 `UserPromptSubmit` 报错，也与 Node.js 版本无关。若错误中出现类似下面的路径：
+
+```text
+/usr/bin/bash: C:Users...Scriptsgraphify.EXE: command not found
+```
+
+说明项目的 `.codex/hooks.json` 把 Windows 绝对路径直接交给了 Bash，路径中的反斜杠被当作转义符。不要删除 HookPrompt，也不需要降级 Node.js。打开报错项目自己的 `.codex/hooks.json`，将 Graphify 命令改为可从 `PATH` 解析的形式：
+
+```json
+"command": "graphify hook-check"
+```
+
+如果必须使用绝对路径，请同时使用正斜杠和外层引号，例如：
+
+```json
+"command": "\"C:/Users/your-name/AppData/Local/Programs/Python/Python311/Scripts/graphify.exe\" hook-check"
+```
+
+保存后重新打开会话，再重试原来的 Bash 命令。只有错误明确指向 `UserPromptSubmit` 或 `user-prompt-submit.js` 时，才继续检查 HookPrompt 配置。
+
 ### 没有显示优化过程
 
 可能原因：
