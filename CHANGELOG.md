@@ -2,18 +2,6 @@
 
 本文件记录 HookPrompt 的重要变更。
 
-## Unreleased - 2026-07-18
-
-### 修复
-
-- Claude Code 项目配置改用官方 `${CLAUDE_PROJECT_DIR}` 占位符，避免会话进入子目录后相对路径漂移并触发 `MODULE_NOT_FOUND`。
-- Codex 项目配置改为从当前目录向上定位 `.codex/hooks/user-prompt-submit.js`，不再要求 Hook 触发时停留在项目根目录。
-- 中英文故障排查明确：`node:internal/modules/cjs/loader` 行号只能说明模块加载失败，不能单凭行号锁定具体 Hook。
-
-### 验证
-
-- 新增 Claude Code 与 Codex 从 `docs/` 子目录触发的路径回归测试。
-
 ## v1.2.11 - 2026-07-03
 
 整理项目公开文档和发布边界，让 HookPrompt 更适合作为正式开源项目使用。
